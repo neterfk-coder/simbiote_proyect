@@ -11,7 +11,7 @@ class Creature {
     this.genome = genome;
     this.id = opts.id || ("c" + Math.random().toString(36).slice(2, 10));
     this.name = opts.name || DNA.nameOf(genome);
-    this.creator = opts.creator || "anónimo";
+    this.creator = opts.creator || I18n.t("anonymousCreator");
     this.parents = opts.parents || null;
     this.bornAt = opts.bornAt || Date.now();
     this.mine = !!opts.mine;

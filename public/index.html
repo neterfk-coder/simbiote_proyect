@@ -18,28 +18,34 @@
 <!-- ═══ Lienzo del mundo (p5 se monta aquí) ═══ -->
 <div id="world-canvas" aria-hidden="true"></div>
 
+<!-- ═══ Selector de idioma (flotante, visible antes de entrar al mundo) ═══ -->
+<div id="lang-switch-floating" class="lang-switch glass" role="group" aria-label="Idioma / Language">
+  <button type="button" data-lang="es" aria-label="Español">ES</button>
+  <button type="button" data-lang="en" aria-label="English">EN</button>
+</div>
+
 <!-- ═══ PANTALLA: INTRO ═══ -->
 <section id="screen-intro" class="screen is-active">
   <div class="intro-inner">
-    <p class="eyebrow">Un experimento de arte vivo</p>
+    <p class="eyebrow" data-i18n="intro.eyebrow">Un experimento de arte vivo</p>
     <h1 class="brand">SIMBIONTE</h1>
-    <p class="tagline">Este mundo está habitado por criaturas nacidas de personas reales.<br>
+    <p class="tagline" data-i18n="intro.tagline">Este mundo está habitado por criaturas nacidas de personas reales.<br>
     Ninguna fue diseñada. Todas fueron <em>donadas</em>.</p>
     <div class="intro-actions">
       <button id="btn-start" class="btn btn-primary">
         <span class="btn-pulse" aria-hidden="true"></span>
-        Dar vida a una criatura
+        <span data-i18n="intro.btnStart">Dar vida a una criatura</span>
       </button>
-      <button id="btn-observe" class="btn btn-ghost">Solo observar el mundo</button>
+      <button id="btn-observe" class="btn btn-ghost" data-i18n="intro.btnObserve">Solo observar el mundo</button>
     </div>
-    <p class="intro-note">Necesitarás tu voz, un gesto y un trazo. Nada sale de tu navegador.</p>
+    <p class="intro-note" data-i18n="intro.note">Necesitarás tu voz, un gesto y un trazo. Nada sale de tu navegador.</p>
   </div>
 </section>
 
 <!-- ═══ PANTALLA: RITUAL DE NACIMIENTO ═══ -->
 <section id="screen-ritual" class="screen">
   <div class="ritual-card glass" role="dialog" aria-labelledby="ritual-title">
-    <button id="ritual-close" class="icon-btn ritual-close" aria-label="Cancelar el ritual">✕</button>
+    <button id="ritual-close" class="icon-btn ritual-close" data-i18n-aria="ritual.closeAria" aria-label="Cancelar el ritual">✕</button>
 
     <div class="ritual-steps" aria-hidden="true">
       <span class="step-orb" data-step="1"></span>
@@ -51,24 +57,24 @@
 
     <!-- Paso 1: VOZ -->
     <div class="ritual-step is-active" data-step="1">
-      <h2 id="ritual-title" class="ritual-title">Dona tu voz</h2>
-      <p class="ritual-hint">Habla, tararea o susurra durante tres segundos.<br>Tu tono se volverá su color; tu energía, su luz.</p>
+      <h2 id="ritual-title" class="ritual-title" data-i18n="ritual.voice.title">Dona tu voz</h2>
+      <p class="ritual-hint" data-i18n="ritual.voice.hint">Habla, tararea o susurra durante tres segundos.<br>Tu tono se volverá su color; tu energía, su luz.</p>
       <div class="voice-stage">
-        <button id="btn-record" class="voice-orb" aria-label="Comenzar a grabar la voz">
+        <button id="btn-record" class="voice-orb" data-i18n-aria="ritual.voice.recordAria" aria-label="Comenzar a grabar la voz">
           <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
             <rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/>
           </svg>
           <span class="voice-ring" aria-hidden="true"></span>
         </button>
-        <p id="voice-status" class="voice-status">Toca el orbe y habla</p>
+        <p id="voice-status" class="voice-status" data-i18n="ritual.voice.idle">Toca el orbe y habla</p>
       </div>
-      <button id="btn-skip-voice" class="btn btn-ghost btn-small">Continuar en silencio</button>
+      <button id="btn-skip-voice" class="btn btn-ghost btn-small" data-i18n="ritual.voice.skip">Continuar en silencio</button>
     </div>
 
     <!-- Paso 2: GESTO -->
     <div class="ritual-step" data-step="2">
-      <h2 class="ritual-title">Dona un gesto</h2>
-      <p class="ritual-hint">Mueve el puntero (o tu dedo) libremente dentro del marco.<br>Tu forma de moverte será su forma de nadar.</p>
+      <h2 class="ritual-title" data-i18n="ritual.gesture.title">Dona un gesto</h2>
+      <p class="ritual-hint" data-i18n="ritual.gesture.hint">Mueve el puntero (o tu dedo) libremente dentro del marco.<br>Tu forma de moverte será su forma de nadar.</p>
       <div class="capture-frame">
         <canvas id="gesture-canvas"></canvas>
         <div id="gesture-timer" class="capture-timer" aria-live="polite">4</div>
@@ -77,8 +83,8 @@
 
     <!-- Paso 3: TRAZO -->
     <div class="ritual-step" data-step="3">
-      <h2 class="ritual-title">Dona un trazo</h2>
-      <p class="ritual-hint">Dibuja una sola línea, la que quieras.<br>Al soltar, tu trazo se convertirá en su anatomía.</p>
+      <h2 class="ritual-title" data-i18n="ritual.stroke.title">Dona un trazo</h2>
+      <p class="ritual-hint" data-i18n="ritual.stroke.hint">Dibuja una sola línea, la que quieras.<br>Al soltar, tu trazo se convertirá en su anatomía.</p>
       <div class="capture-frame">
         <canvas id="stroke-canvas"></canvas>
       </div>
@@ -86,21 +92,21 @@
 
     <!-- Fusión de ADN -->
     <div class="ritual-step" data-step="4">
-      <h2 class="ritual-title">Tejiendo el ADN…</h2>
+      <h2 class="ritual-title" data-i18n="ritual.dna.title">Tejiendo el ADN…</h2>
       <div class="dna-stage"><canvas id="dna-canvas" width="420" height="300"></canvas></div>
-      <p id="dna-caption" class="ritual-hint">voz · gesto · trazo</p>
+      <p id="dna-caption" class="ritual-hint" data-i18n="ritual.dna.idle">voz · gesto · trazo</p>
     </div>
 
     <!-- Nacimiento -->
     <div class="ritual-step" data-step="5">
-      <p class="eyebrow">Ha nacido</p>
+      <p class="eyebrow" data-i18n="ritual.birth.eyebrow">Ha nacido</p>
       <h2 id="born-name" class="born-name">—</h2>
       <p id="born-epithet" class="born-epithet">—</p>
       <label class="creator-field">
-        <span>Fírmala con tu nombre</span>
-        <input id="creator-input" type="text" maxlength="24" placeholder="viajero" autocomplete="off">
+        <span data-i18n="ritual.birth.signLabel">Fírmala con tu nombre</span>
+        <input id="creator-input" type="text" maxlength="24" placeholder="viajero" data-i18n-placeholder="ritual.birth.signPlaceholder" autocomplete="off">
       </label>
-      <button id="btn-release" class="btn btn-primary">Liberarla al mundo</button>
+      <button id="btn-release" class="btn btn-primary" data-i18n="ritual.birth.release">Liberarla al mundo</button>
     </div>
   </div>
 </section>
@@ -115,36 +121,40 @@
     <span id="presence" class="presence"></span>
   </div>
   <nav class="hud-right glass" aria-label="Acciones del mundo">
-    <button id="btn-sound" class="icon-btn" aria-label="Activar sonido" title="Sonido del ecosistema">
+    <div class="lang-switch" role="group" aria-label="Idioma / Language">
+      <button type="button" data-lang="es" aria-label="Español">ES</button>
+      <button type="button" data-lang="en" aria-label="English">EN</button>
+    </div>
+    <button id="btn-sound" class="icon-btn" data-i18n-aria="hud.soundAria" data-i18n-title="hud.soundTitle" aria-label="Activar sonido" title="Sonido del ecosistema">
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path class="snd-wave" d="M15.5 8.5a5 5 0 0 1 0 7"/><path class="snd-wave" d="M18 6a8.5 8.5 0 0 1 0 12"/></svg>
     </button>
-    <button id="btn-chronicle" class="icon-btn" aria-label="Abrir la Crónica" title="La Crónica del mundo">
+    <button id="btn-chronicle" class="icon-btn" data-i18n-aria="hud.chronicleAria" data-i18n-title="hud.chronicleTitle" aria-label="Abrir la Crónica" title="La Crónica del mundo">
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg>
     </button>
-    <button id="btn-new" class="btn btn-primary btn-small">+ Nueva criatura</button>
+    <button id="btn-new" class="btn btn-primary btn-small" data-i18n="hud.newCreature">+ Nueva criatura</button>
   </nav>
 </header>
 
 <!-- Tarjeta de mi criatura -->
 <aside id="my-card" class="glass my-card hidden" aria-live="polite">
   <div class="my-card-head">
-    <p class="eyebrow">Tu criatura</p>
+    <p class="eyebrow" data-i18n="mycard.eyebrow">Tu criatura</p>
     <h3 id="my-name">—</h3>
     <p id="my-epithet" class="muted">—</p>
   </div>
   <div class="my-card-actions">
-    <button id="btn-find" class="btn btn-ghost btn-small">Encontrarla</button>
-    <button id="btn-cert" class="btn btn-primary btn-small">Certificado ↓</button>
+    <button id="btn-find" class="btn btn-ghost btn-small" data-i18n="mycard.find">Encontrarla</button>
+    <button id="btn-cert" class="btn btn-primary btn-small" data-i18n="mycard.cert">Certificado ↓</button>
   </div>
 </aside>
 
 <!-- Panel: la Crónica -->
 <aside id="panel-chronicle" class="panel glass" aria-label="La Crónica del mundo">
   <div class="panel-head">
-    <h3 class="panel-title">La Crónica</h3>
-    <button class="icon-btn panel-close" data-close="panel-chronicle" aria-label="Cerrar la Crónica">✕</button>
+    <h3 class="panel-title" data-i18n="chronicle.title">La Crónica</h3>
+    <button class="icon-btn panel-close" data-close="panel-chronicle" data-i18n-aria="chronicle.closeAria" aria-label="Cerrar la Crónica">✕</button>
   </div>
-  <p class="panel-sub">La memoria del ecosistema, escrita mientras ocurre.</p>
+  <p class="panel-sub" data-i18n="chronicle.sub">La memoria del ecosistema, escrita mientras ocurre.</p>
   <div id="chronicle-feed" class="chronicle-feed"></div>
 </aside>
 
@@ -152,7 +162,7 @@
 <aside id="panel-inspect" class="panel glass panel-bottom" aria-label="Ficha de la criatura">
   <div class="panel-head">
     <h3 id="inspect-name" class="panel-title">—</h3>
-    <button class="icon-btn panel-close" data-close="panel-inspect" aria-label="Cerrar ficha">✕</button>
+    <button class="icon-btn panel-close" data-close="panel-inspect" data-i18n-aria="inspect.closeAria" aria-label="Cerrar ficha">✕</button>
   </div>
   <p id="inspect-origin" class="panel-sub">—</p>
   <div id="inspect-genes" class="gene-bars"></div>
@@ -168,6 +178,7 @@
 
 <!-- ═══ SIMBIONTE ═══ -->
 <script src="js/config.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/dna.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/capture.js"></script>

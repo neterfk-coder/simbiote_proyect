@@ -69,7 +69,7 @@ const World = (() => {
               { id: a.id, name: a.name, creator: a.creator },
               { id: b.id, name: b.name, creator: b.creator }
             ],
-            creator: "el ecosistema"
+            creator: I18n.t("ecosystemCreator")
           });
           a.mateCooldown = b.mateCooldown = 45;
           heartsAt(child.x, child.y, (a.hue1 + b.hue1) / 2);

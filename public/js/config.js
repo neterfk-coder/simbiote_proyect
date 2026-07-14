@@ -17,9 +17,11 @@ window.SIMBIONTE_CONFIG = {
   SUPABASE_URL: "",
   SUPABASE_ANON_KEY: "",
 
-  /* Nombre con el que firmas a tus criaturas (se puede cambiar
-     desde la interfaz).                                            */
-  DEFAULT_CREATOR: "viajero",
+  /* Nombre con el que firmas a tus criaturas si no escribes uno en
+     el ritual (se puede cambiar desde la interfaz). Déjalo vacío
+     para que use el nombre por defecto según el idioma activo
+     ("viajero" / "traveler").                                      */
+  DEFAULT_CREATOR: "",
 
   /* Población máxima visible del mundo (baja a 16 si tu equipo
      va lento).                                                     */

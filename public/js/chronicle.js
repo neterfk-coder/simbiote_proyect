@@ -10,31 +10,23 @@ const Chronicle = (() => {
   const feed = document.getElementById("chronicle-feed");
   let entryCount = 0;
 
-  /* --- Telar local: plantillas míticas --- */
-  const OPEN = ["En la hora quieta,", "Bajo la corriente antigua,", "Cuando el abismo respiró,",
-                "En el pliegue del tiempo,", "Mientras el mundo cantaba,", "Al borde de la luz,"];
-  const BIRTH = [
-    n => `${n.name} abrió los ojos, nacida de ${DNA.epithet(n.genome)}.`,
-    n => `una chispa llamada ${n.name} despertó, hecha de ${DNA.epithet(n.genome)}.`,
-    n => `el vacío pronunció un nombre nuevo: ${n.name}.`
-  ];
-  const LOVE = [
-    e => `${e.a.name} y ${e.b.name} danzaron hasta volverse tres: así llegó ${e.child.name}.`,
-    e => `de la unión de ${e.a.name} con ${e.b.name} brotó ${e.child.name}, heredera de dos cantos.`,
-    e => `${e.child.name} nació llevando la luz de ${e.a.name} y la sombra de ${e.b.name}.`
-  ];
-  const DEATH = [
-    c => `${c.name} se apagó despacio, y su silueta quedó grabada en el lecho del mundo.`,
-    c => `el canto de ${c.name} cesó; su fósil ahora guía a los recién nacidos.`,
-    c => `${c.name} regresó a la corriente. Nada se pierde en SIMBIONTE.`
-  ];
-  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+  /* --- Telar local: plantillas míticas (traducidas vía I18n) --- */
+  const pickN = n => Math.floor(Math.random() * n);
 
   function localMyth(type, data) {
-    const open = pick(OPEN);
-    if (type === "birth") return `${open} ${pick(BIRTH)(data)}`;
-    if (type === "courtship") return `${open} ${pick(LOVE)(data)}`;
-    if (type === "death") return `${open} ${pick(DEATH)(data)}`;
+    const open = I18n.t("myth.open" + pickN(6));
+    if (type === "birth") {
+      const line = I18n.t("myth.birth" + pickN(3), { name: data.name, epithet: DNA.epithet(data.genome) });
+      return `${open} ${line}`;
+    }
+    if (type === "courtship") {
+      const line = I18n.t("myth.love" + pickN(3), { a: data.a.name, b: data.b.name, child: data.child.name });
+      return `${open} ${line}`;
+    }
+    if (type === "death") {
+      const line = I18n.t("myth.death" + pickN(3), { name: data.name });
+      return `${open} ${line}`;
+    }
     return null;
   }
 
@@ -45,7 +37,7 @@ const Chronicle = (() => {
       const r = await fetch(base + "/api/chronicle", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ event: { type, ...summary } })
+        body: JSON.stringify({ event: { type, ...summary }, lang: I18n.lang })
       });
       if (!r.ok) return null;
       const data = await r.json();

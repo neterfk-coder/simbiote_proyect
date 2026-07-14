@@ -34,7 +34,10 @@ const App = (() => {
       World.setPointer({ x: p.mouseX, y: p.mouseY });
       World.updateAndDraw(p, dt);
     };
-    p.mousePressed = () => {
+    p.mousePressed = e => {
+      // p5 dispara mousePressed para cualquier clic en la página, no solo
+      // en el lienzo: hay que ignorar los clics sobre botones/paneles del HUD.
+      if (e && e.target && e.target.tagName !== "CANVAS") return;
       if (!$("#screen-intro").classList.contains("is-active") &&
           !$("#screen-ritual").classList.contains("is-active")) {
         inspectAt(p.mouseX, p.mouseY);
@@ -62,6 +65,7 @@ const App = (() => {
   function enterWorld() {
     show(null);
     $("#hud-top").classList.remove("hidden");
+    $("#lang-switch-floating").classList.add("hidden");
   }
 
   /* ══════════ 3. El Ritual ══════════ */
@@ -80,7 +84,7 @@ const App = (() => {
 
   function openRitual() {
     ritual.voice = ritual.gesture = ritual.stroke = null;
-    $("#voice-status").textContent = "Toca el orbe y habla";
+    $("#voice-status").textContent = I18n.t("ritual.voice.idle");
     $("#btn-record").classList.remove("is-recording");
     show("screen-ritual");
     setStep(1);
@@ -95,14 +99,14 @@ const App = (() => {
   async function recordVoice() {
     const orb = $("#btn-record"), status = $("#voice-status");
     orb.classList.add("is-recording");
-    status.textContent = "Escuchando… habla ahora";
+    status.textContent = I18n.t("ritual.voice.listening");
     try {
       ritual.voice = await AudioRitual.listen(3, level => {
         orb.style.setProperty("--level", 1 + level * 0.7);
       });
-      status.textContent = ritual.voice.silent ? "No te escuché, pero el silencio también es un origen." : "Tu voz quedó registrada.";
+      status.textContent = ritual.voice.silent ? I18n.t("ritual.voice.silent") : I18n.t("ritual.voice.recorded");
     } catch {
-      status.textContent = "Sin micrófono: usaré un eco del azar.";
+      status.textContent = I18n.t("ritual.voice.noMic");
       ritual.voice = { pitch: Math.random(), energy: 0.3 + Math.random() * 0.4, brightness: Math.random() };
     }
     orb.classList.remove("is-recording");
@@ -146,7 +150,7 @@ const App = (() => {
     const genome = DNA.fromRitual(ritual.voice, ritual.gesture, ritual.stroke);
     const W = canvas.width, H = canvas.height;
     const t0 = performance.now();
-    const captions = ["tu voz…", "tu gesto…", "tu trazo…", "un ser nuevo"];
+    const captions = [0, 1, 2, 3].map(i => I18n.t("ritual.dna.caption" + i));
 
     (function frame() {
       const t = (performance.now() - t0) / 1000;
@@ -185,10 +189,10 @@ const App = (() => {
     myCreature = new Creature(genome, {
       x: innerWidth / 2, y: innerHeight / 2,
       mine: true,
-      creator: window.SIMBIONTE_CONFIG?.DEFAULT_CREATOR || "viajero"
+      creator: window.SIMBIONTE_CONFIG?.DEFAULT_CREATOR || I18n.t("defaultCreatorName")
     });
     $("#born-name").textContent = myCreature.name;
-    $("#born-epithet").textContent = "nacida de " + DNA.epithet(genome);
+    $("#born-epithet").textContent = I18n.t("ritual.birth.epithetPrefix", { epithet: DNA.epithet(genome) });
     setStep(5);
     AudioRitual.birthChord(genome);
   }
@@ -202,17 +206,32 @@ const App = (() => {
     enterWorld();
     // tarjeta personal
     $("#my-name").textContent = myCreature.name;
-    $("#my-epithet").textContent = "de " + DNA.epithet(myCreature.genome);
+    $("#my-epithet").textContent = I18n.t("mycard.epithetPrefix", { epithet: DNA.epithet(myCreature.genome) });
     $("#my-card").classList.remove("hidden");
-    toast(`${myCreature.name} ahora vive en el mundo.`);
+    toast(I18n.t("toast.releasedIntoWorld", { name: myCreature.name }));
   }
 
   /* ══════════ 4. Inspector de criaturas ══════════ */
   const GENE_LABELS = {
-    "Luz": DNA.G.GLOW, "Velocidad": DNA.G.SPEED, "Sociabilidad": DNA.G.SOCIAL,
-    "Curiosidad": DNA.G.CURIOUS, "Canto": DNA.G.PITCH, "Pulso": DNA.G.PULSE,
-    "Espinas": DNA.G.SPIKE, "Longevidad": DNA.G.LIFESPAN
+    "gene.glow": DNA.G.GLOW, "gene.speed": DNA.G.SPEED, "gene.social": DNA.G.SOCIAL,
+    "gene.curious": DNA.G.CURIOUS, "gene.pitch": DNA.G.PITCH, "gene.pulse": DNA.G.PULSE,
+    "gene.spike": DNA.G.SPIKE, "gene.lifespan": DNA.G.LIFESPAN
   };
+  let lastInspected = null;
+  function renderInspect(target) {
+    $("#inspect-name").textContent = target.name;
+    $("#inspect-origin").textContent = target.parents
+      ? I18n.t("inspect.childOf", { a: target.parents[0].name, b: target.parents[1].name })
+      : I18n.t("inspect.bornOf", { epithet: DNA.epithet(target.genome), creator: target.creator });
+    const bars = $("#inspect-genes");
+    bars.innerHTML = "";
+    for (const [key, idx] of Object.entries(GENE_LABELS)) {
+      const row = document.createElement("div");
+      row.className = "gene-row";
+      row.innerHTML = `<span>${I18n.t(key)}</span><div class="gene-track"><div class="gene-fill" style="width:${Math.round(target.genome[idx] * 100)}%"></div></div>`;
+      bars.appendChild(row);
+    }
+  }
   function inspectAt(x, y) {
     let target = null, best = 60;
     for (const c of World.creatures) {
@@ -221,18 +240,8 @@ const App = (() => {
     }
     const panel = $("#panel-inspect");
     if (!target) { panel.classList.remove("is-open"); return; }
-    $("#inspect-name").textContent = target.name;
-    $("#inspect-origin").textContent = target.parents
-      ? `hija de ${target.parents[0].name} y ${target.parents[1].name}`
-      : `nacida de ${DNA.epithet(target.genome)} · creador: ${target.creator}`;
-    const bars = $("#inspect-genes");
-    bars.innerHTML = "";
-    for (const [label, idx] of Object.entries(GENE_LABELS)) {
-      const row = document.createElement("div");
-      row.className = "gene-row";
-      row.innerHTML = `<span>${label}</span><div class="gene-track"><div class="gene-fill" style="width:${Math.round(target.genome[idx] * 100)}%"></div></div>`;
-      bars.appendChild(row);
-    }
+    lastInspected = target;
+    renderInspect(target);
     panel.classList.add("is-open");
     AudioRitual.sing(target.genome);
   }
@@ -247,7 +256,7 @@ const App = (() => {
       // Si el mundo llega vacío, lo pueblan ancestros locales (solo visuales)
       if (list.length === 0) {
         for (let i = 0; i < 5; i++) {
-          World.add(new Creature(DNA.random(), { creator: "los ancestros" }),
+          World.add(new Creature(DNA.random(), { creator: I18n.t("ancestorsCreator") }),
                     { announce: false, burst: false });
         }
       }
@@ -256,7 +265,7 @@ const App = (() => {
     onBirth(c) {
       const nc = World.add(new Creature(c.genome, { id: c.id, name: c.name, creator: c.creator, parents: c.parents }),
                            { announce: false });
-      toast(`${nc.name} acaba de nacer en otro lugar del mundo.`, "coral");
+      toast(I18n.t("toast.bornElsewhere", { name: nc.name }), "coral");
       AudioRitual.sing(nc.genome);
     },
     onChronicle(e) { Chronicle.receive(e); }
@@ -278,7 +287,7 @@ const App = (() => {
 
   /* ══════════ 7. Eventos de la interfaz ══════════ */
   $("#btn-start").addEventListener("click", async () => { await AudioRitual.wake().catch(() => {}); openRitual(); });
-  $("#btn-observe").addEventListener("click", () => { enterWorld(); toast("Observas en silencio. Toca una criatura para conocerla."); });
+  $("#btn-observe").addEventListener("click", () => { enterWorld(); toast(I18n.t("toast.observing")); });
   $("#ritual-close").addEventListener("click", closeRitual);
   $("#btn-record").addEventListener("click", recordVoice);
   $("#btn-skip-voice").addEventListener("click", () => {
@@ -292,18 +301,26 @@ const App = (() => {
     await AudioRitual.wake().catch(() => {});
     window.SIMBIONTE_SOUND = !window.SIMBIONTE_SOUND;
     btn.setAttribute("aria-pressed", window.SIMBIONTE_SOUND);
-    toast(window.SIMBIONTE_SOUND ? "El coro del ecosistema despierta." : "El mundo vuelve al silencio.");
+    toast(window.SIMBIONTE_SOUND ? I18n.t("toast.soundOn") : I18n.t("toast.soundOff"));
   });
   $("#btn-chronicle").addEventListener("click", () => $("#panel-chronicle").classList.toggle("is-open"));
   $$(".panel-close").forEach(b => b.addEventListener("click", () => $("#" + b.dataset.close).classList.remove("is-open")));
   $("#btn-cert").addEventListener("click", () => myCreature && Certificate.download(myCreature, p5world));
   $("#btn-find").addEventListener("click", () => {
-    if (!myCreature || myCreature.dead) { toast("Tu criatura ya es un fósil. Su historia sigue en la Crónica.", "coral"); return; }
+    if (!myCreature || myCreature.dead) { toast(I18n.t("toast.creatureIsFossil"), "coral"); return; }
     World.burstAt(myCreature.x, myCreature.y, myCreature.hue1, 30);
-    toast(`${myCreature.name} brilla para ti.`);
+    toast(I18n.t("toast.creatureShines", { name: myCreature.name }));
   });
   addEventListener("keydown", e => { if (e.key === "Escape") $$(".panel").forEach(p => p.classList.remove("is-open")); });
 
   // primera línea de la Crónica
-  Chronicle.render("Al principio, el mundo estaba en silencio, esperando la primera voz.", { broadcast: false });
+  Chronicle.render(I18n.t("chronicle.firstLine"), { broadcast: false });
+
+  /* ══════════ 8. Idioma: refrescar texto dinámico visible ══════════ */
+  I18n.onChange(() => {
+    if (myCreature && !$("#my-card").classList.contains("hidden")) {
+      $("#my-epithet").textContent = I18n.t("mycard.epithetPrefix", { epithet: DNA.epithet(myCreature.genome) });
+    }
+    if (lastInspected && $("#panel-inspect").classList.contains("is-open")) renderInspect(lastInspected);
+  });
 })();

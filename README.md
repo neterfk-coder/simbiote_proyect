@@ -36,6 +36,7 @@ simbionte/
     ├── css/style.css      Diseño "bioluminiscencia abisal"
     └── js/
         ├── config.js      ← ÚNICO archivo que necesitas tocar para producción
+        ├── i18n.js        Idiomas (español/English): textos y selector ES/EN
         ├── dna.js         Genoma de 20 genes, cruce, mutación, nombres
         ├── audio.js       Voz del visitante (Web Audio) + coro (Tone.js)
         ├── capture.js     Gesto y trazo del ritual
@@ -100,6 +101,10 @@ El proyecto se publica en dos piezas, ambas gratis:
 > Alternativa simple: despliega TODO solo en Render (sirve frontend y sockets juntos) y usa Vercel únicamente si quieres el dominio bonito para la página.
 
 ---
+
+## 🌐 Idioma
+
+El selector **ES / EN** está siempre visible (esquina superior derecha antes de entrar al mundo, dentro del HUD una vez dentro). Cambia al instante todo el texto de la interfaz, la mitología de la Crónica (incluida la generada por el Cronista IA), el certificado descargable y los nombres de género por defecto. La preferencia se guarda en `localStorage` y se detecta automáticamente el idioma del navegador en la primera visita.
 
 ## 🎛️ Controles
 

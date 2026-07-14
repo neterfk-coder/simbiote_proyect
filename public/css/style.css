@@ -212,6 +212,20 @@ button { font-family: var(--body); cursor: pointer; color: inherit; background: 
 }
 .creator-field input:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(7,237,196,.15); }
 
+/* ═══ Selector de idioma ═══ */
+.lang-switch { display: flex; align-items: center; border-radius: 999px; gap: 2px; padding: 3px; background: rgba(255,255,255,.04); }
+.lang-switch button {
+  padding: 5px 11px; border-radius: 999px; font-size: .7rem; font-weight: 700;
+  letter-spacing: .04em; color: var(--fog-dim); transition: color .25s, background .25s;
+}
+.lang-switch button:hover { color: #fff; }
+.lang-switch button[aria-pressed="true"] { color: #04241d; background: linear-gradient(120deg, var(--cyan), #3ac7ff); }
+.hud-right .lang-switch { padding-right: 10px; margin-right: 2px; border-right: 1px solid var(--line); background: none; }
+#lang-switch-floating { position: fixed; top: 16px; right: 16px; z-index: 50; border-radius: 999px; }
+@media (max-width: 640px) {
+  #lang-switch-floating { top: 12px; right: 12px; }
+}
+
 /* ═══ HUD ═══ */
 .hud {
   position: fixed; top: 16px; left: 16px; right: 16px; z-index: 20;

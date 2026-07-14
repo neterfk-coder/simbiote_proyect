@@ -110,9 +110,9 @@ const DNA = (() => {
 
   /* Epíteto legible del origen (para certificados y crónica) */
   function epithet(g) {
-    const voz   = g[G.PITCH] > 0.6 ? "una voz aguda" : g[G.PITCH] < 0.35 ? "una voz grave" : "una voz serena";
-    const forma = g[G.SPIKE] > 0.6 ? "un trazo afilado" : g[G.FLOW] > 0.6 ? "un trazo en espiral" : "un trazo errante";
-    return `${voz} y ${forma}`;
+    const voiceKey = g[G.PITCH] > 0.6 ? "epithet.voiceHigh" : g[G.PITCH] < 0.35 ? "epithet.voiceLow" : "epithet.voiceCalm";
+    const shapeKey = g[G.SPIKE] > 0.6 ? "epithet.shapeSpiky" : g[G.FLOW] > 0.6 ? "epithet.shapeSpiral" : "epithet.shapeWandering";
+    return I18n.t("epithet.join", { voice: I18n.t(voiceKey), shape: I18n.t(shapeKey) });
   }
 
   return { G, LENGTH, fromRitual, random, crossover, mutate, offspring, distance, nameOf, epithet };

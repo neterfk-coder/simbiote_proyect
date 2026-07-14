@@ -91,8 +91,13 @@ io.on('connection', socket => {
 /* ---------- API: Cronista IA (opcional) ----------
    Si defines ANTHROPIC_API_KEY en .env, la mitología la
    escribe Claude. Si no, el frontend usa su generador local. */
+const CHRONICLER_SYSTEM = {
+  es: 'Eres el Cronista de SIMBIONTE, un ecosistema digital vivo. Escribe UNA sola frase mítica y poética en español (máximo 30 palabras) sobre el evento recibido. Tono de leyenda antigua. Sin comillas, sin explicaciones.',
+  en: 'You are the Chronicler of SIMBIONTE, a living digital ecosystem. Write ONE single mythic, poetic sentence in English (max 30 words) about the received event. Tone of an ancient legend. No quotes, no explanations.'
+};
+
 app.post('/api/chronicle', async (req, res) => {
-  const { event } = req.body || {};
+  const { event, lang } = req.body || {};
   if (!event) return res.status(400).json({ error: 'Falta el evento.' });
   if (!process.env.ANTHROPIC_API_KEY) {
     return res.json({ text: null, source: 'local' });
@@ -106,9 +111,9 @@ app.post('/api/chronicle', async (req, res) => {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-sonnet-5',
         max_tokens: 120,
-        system: 'Eres el Cronista de SIMBIONTE, un ecosistema digital vivo. Escribe UNA sola frase mítica y poética en español (máximo 30 palabras) sobre el evento recibido. Tono de leyenda antigua. Sin comillas, sin explicaciones.',
+        system: CHRONICLER_SYSTEM[lang === 'en' ? 'en' : 'es'],
         messages: [{ role: 'user', content: JSON.stringify(event) }]
       })
     });

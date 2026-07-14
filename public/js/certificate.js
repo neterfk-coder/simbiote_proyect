@@ -70,20 +70,20 @@ const Certificate = (() => {
     g.textAlign(g.CENTER, g.CENTER);
     g.fill(45, 30, 95, 0.9);
     g.textSize(30); g.textStyle(g.NORMAL);
-    g.text("C E R T I F I C A D O   D E   N A C I M I E N T O", W / 2, H * 0.70);
+    g.text(I18n.t("certificate.heading"), W / 2, H * 0.70);
     g.fill(0, 0, 100);
     g.textSize(96); g.textStyle(g.BOLD);
     g.text(creature.name, W / 2, H * 0.775);
     g.textStyle(g.ITALIC); g.textSize(34);
     g.fill(creature.hue1, 50, 95, 0.95);
-    g.text(`nacida de ${DNA.epithet(creature.genome)}`, W / 2, H * 0.845);
+    g.text(I18n.t("certificate.bornPrefix", { epithet: DNA.epithet(creature.genome) }), W / 2, H * 0.845);
     g.textStyle(g.NORMAL); g.textSize(26);
     g.fill(0, 0, 85, 0.8);
-    const fecha = new Date(creature.bornAt).toLocaleDateString("es", { day: "numeric", month: "long", year: "numeric" });
-    g.text(`Creador: ${creature.creator}   ·   ${fecha}`, W / 2, H * 0.905);
+    const fecha = new Date(creature.bornAt).toLocaleDateString(I18n.t("dateLocale"), { day: "numeric", month: "long", year: "numeric" });
+    g.text(I18n.t("certificate.creator", { creator: creature.creator, date: fecha }), W / 2, H * 0.905);
     g.textSize(22);
     g.fill(0, 0, 70, 0.7);
-    g.text("S I M B I O N T E  —  el ecosistema de arte vivo", W / 2, H * 0.955);
+    g.text(I18n.t("certificate.footer"), W / 2, H * 0.955);
 
     // marco
     g.noFill();
