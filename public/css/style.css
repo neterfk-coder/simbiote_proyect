@@ -200,6 +200,15 @@ button { font-family: var(--body); cursor: pointer; color: inherit; background: 
   text-shadow: 0 0 38px rgba(7,237,196,.5);
   animation: rise .8s var(--ease) both;
 }
+.born-name-input {
+  display: block; width: 100%; text-align: center;
+  background: none; border: none; border-bottom: 2px solid transparent;
+  transition: border-color .3s;
+}
+.born-name-input:hover, .born-name-input:focus {
+  outline: none; border-color: rgba(7,237,196,.5);
+}
+.born-name-input::selection { background: rgba(7,237,196,.35); }
 .born-epithet { font-family: var(--serif); font-style: italic; font-size: 1.15rem; color: var(--gold); margin-bottom: 26px; }
 .creator-field { display: grid; gap: 8px; margin: 0 auto 24px; max-width: 300px; text-align: left; }
 .creator-field span { font-size: .72rem; letter-spacing: .18em; text-transform: uppercase; color: var(--fog-dim); }
@@ -245,6 +254,17 @@ button { font-family: var(--body); cursor: pointer; color: inherit; background: 
 @keyframes blink { 50% { opacity: .3; } }
 .presence { font-size: .72rem; color: var(--fog-dim); }
 
+.diamond-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 999px;
+  background: linear-gradient(120deg, rgba(232,200,119,.18), rgba(232,200,119,.05));
+  border: 1px solid rgba(232,200,119,.3);
+  color: var(--gold); font-size: .84rem; font-weight: 700;
+  transition: transform .3s var(--ease), box-shadow .3s;
+}
+.diamond-pill:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(232,200,119,.2); }
+.diamond-pill span { font-size: .9rem; }
+
 /* ═══ Tarjeta de mi criatura ═══ */
 .my-card {
   position: fixed; left: 16px; bottom: 16px; z-index: 20;
@@ -255,6 +275,41 @@ button { font-family: var(--body); cursor: pointer; color: inherit; background: 
 .my-card h3 { font-family: var(--display); font-weight: 500; font-size: 1.25rem; color: #fff; margin: 4px 0 2px; }
 .my-card .muted { font-family: var(--serif); font-style: italic; font-size: .95rem; }
 .my-card-actions { display: flex; gap: 10px; margin-top: 14px; }
+
+.lb-row { display: flex; justify-content: space-between; gap: 12px; font-size: .78rem; color: var(--fog-dim); }
+.lb-row strong { color: #fff; font-weight: 600; text-align: right; }
+
+/* ═══ Propuesta de cortejo ═══ */
+.courtship-modal {
+  position: fixed; inset: 0; margin: auto;
+  width: min(340px, calc(100vw - 32px)); height: max-content;
+  border-radius: 22px; padding: 26px 24px; text-align: center;
+  z-index: 35; transform: scale(.92); opacity: 0; pointer-events: none;
+  transition: transform .35s var(--ease), opacity .3s;
+}
+.courtship-modal.is-open { transform: scale(1); opacity: 1; pointer-events: auto; }
+.compat-meter { height: 8px; border-radius: 4px; background: rgba(255,255,255,.07); overflow: hidden; margin: 16px 0 8px; }
+.compat-fill { height: 100%; border-radius: 4px; background: var(--coral); transition: width .4s var(--ease), background .4s; }
+.compat-fill[data-level="high"] { background: linear-gradient(90deg, var(--cyan), #3ac7ff); }
+.compat-fill[data-level="clone"] { background: var(--gold); }
+.compat-level { font-size: .82rem; color: var(--fog-dim); margin-bottom: 6px; }
+.courtship-modal .my-card-actions { justify-content: center; margin-top: 18px; }
+
+/* ═══ Celebración de logros ═══ */
+.celebration {
+  position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+  pointer-events: none; opacity: 0; transition: opacity .4s var(--ease);
+  background: radial-gradient(circle at 50% 50%, rgba(232,200,119,.18), transparent 60%);
+  padding: 24px;
+}
+.celebration.show { opacity: 1; }
+.celebration-text {
+  font-family: var(--display); font-weight: 700; text-align: center;
+  font-size: clamp(1.5rem, 5vw, 2.8rem); color: #fff;
+  text-shadow: 0 0 40px var(--gold), 0 0 80px var(--cyan);
+  animation: celebPop .6s var(--ease) both;
+}
+@keyframes celebPop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
 /* ═══ Paneles ═══ */
 .panel {
@@ -298,6 +353,83 @@ button { font-family: var(--body); cursor: pointer; color: inherit; background: 
 }
 @keyframes grow { from { transform: scaleX(0); } }
 
+/* ═══ Tienda ═══ */
+.shop-panel { width: min(420px, calc(100vw - 32px)); }
+.shop-grid { overflow-y: auto; padding-right: 6px; display: grid; gap: 22px; scrollbar-width: thin; }
+.shop-cat-title {
+  font-size: .68rem; letter-spacing: .3em; text-transform: uppercase;
+  color: var(--cyan); font-weight: 600; margin-bottom: 10px;
+}
+.shop-cards { display: grid; gap: 10px; }
+.shop-card {
+  display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 12px;
+  padding: 12px 14px; border-radius: 16px;
+  background: rgba(255,255,255,.03); border: 1px solid var(--line);
+  transition: border-color .3s, background .3s;
+}
+.shop-card:hover { border-color: rgba(7,237,196,.35); background: rgba(7,237,196,.05); }
+.shop-card.is-owned { border-color: rgba(232,200,119,.35); }
+.shop-card-icon {
+  width: 40px; height: 40px; border-radius: 12px;
+  display: grid; place-items: center; font-size: 1.2rem;
+  background: rgba(255,255,255,.05);
+}
+.shop-card-name { font-size: .88rem; font-weight: 600; color: #fff; }
+.shop-card-desc { font-size: .74rem; color: var(--fog-dim); line-height: 1.4; margin-top: 2px; }
+.shop-card-btn {
+  padding: 9px 14px; border-radius: 999px; font-size: .78rem; font-weight: 700;
+  background: linear-gradient(120deg, var(--cyan), #3ac7ff); color: #04241d;
+  white-space: nowrap; transition: transform .25s var(--ease), opacity .25s;
+}
+.shop-card-btn:hover { transform: translateY(-1px); }
+.shop-card-btn.is-equipped { background: linear-gradient(120deg, var(--coral), #ff8fb0); color: #2a0512; }
+
+/* ═══ Cuenta ═══ */
+.account-panel { width: min(360px, calc(100vw - 32px)); }
+.account-form { display: grid; gap: 14px; margin-top: 6px; }
+.account-form label { display: grid; gap: 6px; text-align: left; }
+.account-form label span { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--fog-dim); }
+.account-form input {
+  font-family: var(--body); font-size: .92rem; color: #fff;
+  background: rgba(255,255,255,.05);
+  border: 1px solid var(--line); border-radius: 12px;
+  padding: 11px 14px;
+  transition: border-color .3s, box-shadow .3s;
+}
+.account-form input:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(7,237,196,.15); }
+.account-error { font-size: .78rem; color: var(--coral); }
+.account-state.hidden { display: none; }
+
+/* ═══ Ranking en vivo ═══ */
+.lb-screen-outer { background: rgba(4, 3, 12, .6); backdrop-filter: blur(8px); }
+.lb-screen {
+  width: min(720px, calc(100vw - 32px)); max-height: calc(100vh - 64px);
+  border-radius: 26px; padding: 30px 30px 22px;
+  display: flex; flex-direction: column; gap: 18px;
+  animation: rise .5s var(--ease) both;
+}
+.lb-title { font-family: var(--display); font-weight: 500; font-size: 1.4rem; color: #fff; }
+.lb-tabs { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.lb-by { font-size: .72rem; margin-right: 4px; }
+.lb-tab {
+  padding: 8px 16px; border-radius: 999px; font-size: .8rem; font-weight: 600;
+  color: var(--fog-dim); border: 1px solid var(--line);
+  transition: color .25s, background .25s, border-color .25s;
+}
+.lb-tab:hover { color: #fff; }
+.lb-tab.is-active { color: #04241d; background: linear-gradient(120deg, var(--cyan), #3ac7ff); border-color: transparent; }
+#lb-chart { width: 100%; display: block; }
+.lb-table-wrap { overflow-y: auto; flex: 1; scrollbar-width: thin; }
+.lb-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+.lb-table th {
+  text-align: left; font-size: .68rem; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--fog-dim); font-weight: 600; padding: 8px 10px; position: sticky; top: 0;
+  background: var(--panel-solid);
+}
+.lb-table td { padding: 10px; border-top: 1px solid var(--line); color: var(--fog); }
+.lb-table tr.is-mine td { color: var(--coral); font-weight: 600; }
+.lb-table .lb-empty { text-align: center; color: var(--fog-dim); padding: 26px 0; }
+
 /* ═══ Toasts ═══ */
 .toasts { position: fixed; top: 78px; left: 50%; transform: translateX(-50%); z-index: 40; display: grid; gap: 10px; pointer-events: none; }
 .toast {
@@ -311,6 +443,7 @@ button { font-family: var(--body); cursor: pointer; color: inherit; background: 
   animation: toastIn .5s var(--ease) both;
 }
 .toast.coral { border-left-color: var(--coral); }
+.toast.gold { border-left-color: var(--gold); }
 @keyframes toastIn { from { opacity: 0; transform: translateY(-14px); } to { opacity: 1; transform: none; } }
 .toast.out { animation: toastOut .5s var(--ease) both; }
 @keyframes toastOut { to { opacity: 0; transform: translateY(-14px); } }
@@ -321,6 +454,10 @@ button { font-family: var(--body); cursor: pointer; color: inherit; background: 
   .hud-left { padding: 8px 14px; }
   .presence { display: none; }
   .capture-frame { height: 230px; }
+  .shop-card { grid-template-columns: 34px 1fr; }
+  .shop-card-btn { grid-column: 1 / -1; }
+  .lb-screen { padding: 22px 16px 16px; max-height: calc(100vh - 32px); }
+  .lb-table th:nth-child(3), .lb-table td:nth-child(3) { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }

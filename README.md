@@ -44,6 +44,11 @@ simbionte/
         ├── world.js       Ecosistema: reproducción, fósiles, partículas
         ├── chronicle.js   El Cronista (mitos locales o IA del servidor)
         ├── net.js         Socket.io + modo santuario + Supabase lectura
+        ├── auth.js        Cuentas (Supabase Auth) — opcional, cae a invitado
+        ├── wallet.js      Diamantes e inventario (cuenta o localStorage)
+        ├── courtship.js   Cortejo propuesto por el visitante
+        ├── shop.js        La Tienda (comida, regalos, artefactos, ropa)
+        ├── leaderboard.js Pantalla de ranking en vivo con gráfica
         ├── certificate.js Certificado de nacimiento PNG descargable
         └── main.js        Orquestador de todo el flujo
 ```
@@ -78,6 +83,49 @@ create policy "lectura publica" on creatures for select using (true);
 
 4. Reinicia `npm start`. Verás: `Supabase conectado: persistencia activa.`
 
+## 💎 Cuentas, diamantes y tienda (opcional)
+
+Sin nada configurado, la Tienda y las misiones **funcionan igual**: cada navegador guarda sus propios diamantes e inventario en `localStorage` ("modo invitado"). Para que los diamantes persistan entre dispositivos, activa cuentas reales con Supabase Auth:
+
+1. En tu proyecto Supabase, activa **Authentication → Email** (usuario/contraseña; no requiere confirmación por correo para probar en local).
+2. En **SQL Editor**, además de la tabla `creatures` de arriba, ejecuta:
+
+```sql
+alter table creatures add column if not exists user_id uuid references auth.users(id);
+
+create table wallets (
+  user_id     uuid primary key references auth.users(id) on delete cascade,
+  diamonds    integer not null default 0,
+  updated_at  timestamptz default now()
+);
+create table inventory (
+  id           bigint generated always as identity primary key,
+  user_id      uuid references auth.users(id) on delete cascade,
+  item_id      text not null,
+  equipped     boolean default false,
+  acquired_at  timestamptz default now()
+);
+create table missions_done (
+  user_id      uuid references auth.users(id) on delete cascade,
+  mission_key  text not null,
+  done_at      timestamptz default now(),
+  primary key (user_id, mission_key)
+);
+
+alter table wallets enable row level security;
+alter table inventory enable row level security;
+alter table missions_done enable row level security;
+create policy "propio wallet" on wallets for select using (auth.uid() = user_id);
+create policy "propio inventario" on inventory for select using (auth.uid() = user_id);
+create policy "propias misiones" on missions_done for select using (auth.uid() = user_id);
+-- Todas las escrituras de diamantes/inventario/misiones pasan por el servidor
+-- (server.js usa la service_role key), así que no hacen falta policies de INSERT/UPDATE aquí.
+```
+
+3. Con `SUPABASE_URL`/`SUPABASE_SERVICE_KEY` ya en tu `.env` (servidor) y `SUPABASE_URL`/`SUPABASE_ANON_KEY` en `public/js/config.js` (frontend), reinicia `npm start`. El botón de cuenta (💎, arriba a la derecha) pasa a mostrar el formulario de inicio de sesión / registro en vez del aviso de modo invitado.
+
+**Por qué el precio/recompensa vive en el servidor**: `server.js` define `MISSIONS` y `SHOP_ITEMS` como la única fuente de verdad — el navegador solo manda "quiero esta misión" o "quiero este artículo"; el servidor decide cuánto vale. Así nadie puede regalarse diamantes editando el JavaScript del navegador.
+
 ## 🤖 Activar el Cronista IA (opcional)
 
 En `.env` añade tu `ANTHROPIC_API_KEY`. La mitología pasará a escribirla Claude a través de `POST /api/chronicle` (el servidor limita cada mito a una frase). Sin clave, el telar local de mitos funciona igual de bien para la demo.
@@ -110,10 +158,15 @@ El selector **ES / EN** está siempre visible (esquina superior derecha antes de
 
 | Acción | Cómo |
 |---|---|
-| Crear una criatura | «Dar vida a una criatura» → voz (3 s) → gesto (4 s) → trazo (suelta para terminar) |
+| Crear una criatura | «Dar vida a una criatura» → voz (3 s) → gesto (4 s) → trazo (suelta para terminar) → puedes editar su nombre antes de liberarla |
 | Conocer una criatura | Tócala/clic: se abre su ficha con genes y genealogía |
+| Alimentarla | Arrastra una partícula de luz flotante hasta ella (crece un poco y vive más) |
+| Llamarla | Mantén presionado cerca de ella: nada hacia el cursor más rápido que hacia cualquier otra |
+| Proponerle un cortejo | Arrástrala hasta otra criatura: verás la compatibilidad genética antes de confirmar el cruce |
 | Escuchar el coro | Botón de sonido del HUD (cada criatura canta su gen de tono) |
 | Leer la mitología | Botón de libro → panel «La Crónica» |
+| Ver el ranking en vivo | Botón de trofeo → gráfica y tabla de todas las criaturas por longevidad, descendencia o sociabilidad |
+| Comprar en la Tienda | Botón de bolsa → comida, regalos, artefactos y vestimentas con tus 💎 |
 | Compartir | «Certificado ↓» descarga un PNG 1080×1350 listo para redes |
 
 ## 🔒 Privacidad

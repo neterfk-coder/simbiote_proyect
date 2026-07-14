@@ -125,6 +125,105 @@ app.post('/api/chronicle', async (req, res) => {
   }
 });
 
+/* ---------- Economía: misiones y tienda (opcional, requiere cuentas) ----------
+   El precio/recompensa vive SOLO aquí (nunca en el cliente): el navegador
+   manda un id y el servidor decide cuánto vale. Requiere Supabase con Auth
+   activado (mismas credenciales que la persistencia de criaturas). Sin
+   Supabase configurado, estos endpoints responden 503 y el frontend cae
+   automáticamente al wallet de invitado en localStorage (ver wallet.js). */
+const MISSIONS = {
+  firstBirth: 25, survive: 20, fed5: 15, firstChild: 40, firstCourtship: 10
+};
+const SHOP_ITEMS = {
+  food_spark: 8, food_feast: 25,
+  gift_hearts: 12, gift_confetti: 15,
+  art_amulet_social: 40, art_relic_glow: 40, art_shell_lifespan: 60,
+  wear_crown: 50, wear_collar: 35, wear_aura_gold: 30, wear_aura_violet: 30, wear_trail_sparkle: 45
+};
+const WEAR_SLOTS = {
+  wear_crown: 'head', wear_collar: 'collar', wear_aura_gold: 'aura', wear_aura_violet: 'aura', wear_trail_sparkle: 'trail'
+};
+
+async function userFromAuth(req) {
+  if (!supabase) return null;
+  const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  if (!token) return null;
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data?.user) return null;
+  return data.user;
+}
+async function getOrCreateWallet(userId) {
+  const { data } = await supabase.from('wallets').select('*').eq('user_id', userId).maybeSingle();
+  if (data) return data;
+  const { data: created } = await supabase.from('wallets').insert({ user_id: userId, diamonds: 0 }).select().single();
+  return created || { user_id: userId, diamonds: 0 };
+}
+
+app.get('/api/wallet', async (req, res) => {
+  const user = await userFromAuth(req);
+  if (!user) return res.status(supabase ? 401 : 503).json({ error: supabase ? 'No autenticado.' : 'Cuentas no configuradas.' });
+  const wallet = await getOrCreateWallet(user.id);
+  const { data: inventory } = await supabase.from('inventory').select('item_id, equipped').eq('user_id', user.id);
+  res.json({ diamonds: wallet.diamonds, inventory: inventory || [] });
+});
+
+app.post('/api/missions/claim', async (req, res) => {
+  const user = await userFromAuth(req);
+  if (!user) return res.status(supabase ? 401 : 503).json({ error: supabase ? 'No autenticado.' : 'Cuentas no configuradas.' });
+  const { missionKey } = req.body || {};
+  const reward = MISSIONS[missionKey];
+  if (!reward) return res.status(400).json({ error: 'Misión desconocida.' });
+
+  const { error: dupErr } = await supabase.from('missions_done').insert({ user_id: user.id, mission_key: missionKey });
+  if (dupErr) { // ya reclamada (violación de la clave primaria user_id+mission_key)
+    const wallet = await getOrCreateWallet(user.id);
+    return res.json({ diamonds: wallet.diamonds, alreadyClaimed: true });
+  }
+  const wallet = await getOrCreateWallet(user.id);
+  const diamonds = wallet.diamonds + reward;
+  await supabase.from('wallets').update({ diamonds, updated_at: new Date().toISOString() }).eq('user_id', user.id);
+  res.json({ diamonds, reward });
+});
+
+app.post('/api/shop/purchase', async (req, res) => {
+  const user = await userFromAuth(req);
+  if (!user) return res.status(supabase ? 401 : 503).json({ error: supabase ? 'No autenticado.' : 'Cuentas no configuradas.' });
+  const { itemId } = req.body || {};
+  const price = SHOP_ITEMS[itemId];
+  if (!price) return res.status(400).json({ error: 'Artículo desconocido.' });
+
+  const wallet = await getOrCreateWallet(user.id);
+  if (wallet.diamonds < price) return res.status(402).json({ error: 'Diamantes insuficientes.', diamonds: wallet.diamonds });
+  const diamonds = wallet.diamonds - price;
+  await supabase.from('wallets').update({ diamonds, updated_at: new Date().toISOString() }).eq('user_id', user.id);
+
+  const equippable = itemId.startsWith('art_') || itemId.startsWith('wear_');
+  if (equippable) {
+    const slot = WEAR_SLOTS[itemId];
+    if (slot) { // solo uno por slot: desequipa lo anterior del mismo slot
+      const slotIds = Object.keys(WEAR_SLOTS).filter(id => WEAR_SLOTS[id] === slot);
+      await supabase.from('inventory').update({ equipped: false }).eq('user_id', user.id).in('item_id', slotIds);
+    }
+    await supabase.from('inventory').insert({ user_id: user.id, item_id: itemId, equipped: true });
+  }
+  const { data: inventory } = await supabase.from('inventory').select('item_id, equipped').eq('user_id', user.id);
+  res.json({ diamonds, inventory: inventory || [] });
+});
+
+app.post('/api/shop/equip', async (req, res) => {
+  const user = await userFromAuth(req);
+  if (!user) return res.status(supabase ? 401 : 503).json({ error: supabase ? 'No autenticado.' : 'Cuentas no configuradas.' });
+  const { itemId, equipped } = req.body || {};
+  const slot = WEAR_SLOTS[itemId];
+  if (slot && equipped) {
+    const slotIds = Object.keys(WEAR_SLOTS).filter(id => WEAR_SLOTS[id] === slot);
+    await supabase.from('inventory').update({ equipped: false }).eq('user_id', user.id).in('item_id', slotIds);
+  }
+  await supabase.from('inventory').update({ equipped: !!equipped }).eq('user_id', user.id).eq('item_id', itemId);
+  const { data: inventory } = await supabase.from('inventory').select('item_id, equipped').eq('user_id', user.id);
+  res.json({ inventory: inventory || [] });
+});
+
 app.get('/api/health', (_req, res) => res.json({ ok: true, alive: roster.length }));
 
 const PORT = process.env.PORT || 3000;

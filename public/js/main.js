@@ -16,6 +16,9 @@ const App = (() => {
   let myCreature = null;
   const ritual = { voice: null, gesture: null, stroke: null };
   let lastFrame = performance.now();
+  let draggingFood = null;
+  let draggingCreature = false;
+  const milestones = new Set();
 
   /* ══════════ 1. El mundo (sketch p5) ══════════ */
   new p5(p => {
@@ -31,16 +34,47 @@ const App = (() => {
       const dt = Math.min(0.05, (now - lastFrame) / 1000);
       lastFrame = now;
       drawAbyss(p);
-      World.setPointer({ x: p.mouseX, y: p.mouseY });
+      World.setPointer({ x: p.mouseX, y: p.mouseY, held: p.mouseIsPressed && !draggingFood && !draggingCreature });
       World.updateAndDraw(p, dt);
+      checkSurvivalMilestone();
     };
     p.mousePressed = e => {
       // p5 dispara mousePressed para cualquier clic en la página, no solo
       // en el lienzo: hay que ignorar los clics sobre botones/paneles del HUD.
       if (e && e.target && e.target.tagName !== "CANVAS") return;
-      if (!$("#screen-intro").classList.contains("is-active") &&
-          !$("#screen-ritual").classList.contains("is-active")) {
-        inspectAt(p.mouseX, p.mouseY);
+      if ($("#screen-intro").classList.contains("is-active") ||
+          $("#screen-ritual").classList.contains("is-active")) return;
+
+      const f = World.foodAt(p.mouseX, p.mouseY);
+      if (f) { draggingFood = f; World.dragFood(f, p.mouseX, p.mouseY); return; }
+
+      if (myCreature && !myCreature.dead && Math.hypot(myCreature.x - p.mouseX, myCreature.y - p.mouseY) < myCreature.r + 18) {
+        draggingCreature = true;
+        myCreature.dragging = true;
+        return;
+      }
+      inspectAt(p.mouseX, p.mouseY);
+    };
+    p.mouseDragged = () => {
+      if (draggingFood) World.dragFood(draggingFood, p.mouseX, p.mouseY);
+      if (draggingCreature && myCreature) {
+        myCreature.x = p.mouseX; myCreature.y = p.mouseY;
+      }
+    };
+    p.mouseReleased = () => {
+      if (draggingFood) {
+        const fed = World.releaseFood(draggingFood, p.mouseX, p.mouseY);
+        if (fed) {
+          toast(I18n.t("toast.fed", { name: fed.name }));
+          if (fed.feedCount >= 5) checkMilestone("fed5", fed);
+        }
+        draggingFood = null;
+      }
+      if (draggingCreature && myCreature) {
+        myCreature.dragging = false;
+        draggingCreature = false;
+        const t = Courtship.endDrag(myCreature, p.mouseX, p.mouseY);
+        if (t) openCourtshipProposal(myCreature, t);
       }
     };
   });
@@ -189,15 +223,18 @@ const App = (() => {
     myCreature = new Creature(genome, {
       x: innerWidth / 2, y: innerHeight / 2,
       mine: true,
-      creator: window.SIMBIONTE_CONFIG?.DEFAULT_CREATOR || I18n.t("defaultCreatorName")
+      creator: window.SIMBIONTE_CONFIG?.DEFAULT_CREATOR || I18n.t("defaultCreatorName"),
+      cosmetics: Wallet.equippedItems()
     });
-    $("#born-name").textContent = myCreature.name;
+    $("#born-name").value = myCreature.name;
     $("#born-epithet").textContent = I18n.t("ritual.birth.epithetPrefix", { epithet: DNA.epithet(genome) });
     setStep(5);
     AudioRitual.birthChord(genome);
   }
 
   function release() {
+    const chosenName = $("#born-name").value.trim();
+    if (chosenName) myCreature.name = chosenName;
     const name = $("#creator-input").value.trim();
     if (name) myCreature.creator = name;
     World.add(myCreature);
@@ -209,6 +246,7 @@ const App = (() => {
     $("#my-epithet").textContent = I18n.t("mycard.epithetPrefix", { epithet: DNA.epithet(myCreature.genome) });
     $("#my-card").classList.remove("hidden");
     toast(I18n.t("toast.releasedIntoWorld", { name: myCreature.name }));
+    checkMilestone("firstBirth", myCreature);
   }
 
   /* ══════════ 4. Inspector de criaturas ══════════ */
@@ -246,11 +284,66 @@ const App = (() => {
     AudioRitual.sing(target.genome);
   }
 
+  /* ══════════ 4b. Cortejo propuesto (proposeCourtship) ══════════ */
+  function openCourtshipProposal(mine, target) {
+    const { level } = Courtship.preview(mine, target);
+    $("#courtship-desc").textContent = I18n.t("courtship.desc", { name: target.name });
+    const fill = $("#courtship-meter-fill");
+    fill.style.width = { clone: "22%", high: "88%", low: "30%" }[level];
+    fill.dataset.level = level;
+    $("#courtship-level").textContent = I18n.t("courtship.level." + level);
+    $("#panel-courtship").dataset.targetId = target.id;
+    $("#panel-courtship").classList.add("is-open");
+  }
+  $("#btn-courtship-confirm").addEventListener("click", () => {
+    const panel = $("#panel-courtship");
+    panel.classList.remove("is-open");
+    if (!myCreature) return;
+    const targetId = panel.dataset.targetId;
+    const target = World.creatures.find(c => c.id === targetId);
+    if (!target) return;
+    if (myCreature.mateCooldown > 0 || target.mateCooldown > 0) { toast(I18n.t("toast.courtshipCooldown"), "coral"); return; }
+    const result = Courtship.attempt(myCreature, target);
+    checkMilestone("firstCourtship", myCreature);
+    if (result.success) {
+      toast(I18n.t("toast.courtshipSuccess", { a: myCreature.name, b: target.name, child: result.child.name }));
+    } else {
+      toast(I18n.t("toast.courtshipFail", { a: myCreature.name, b: target.name }), "coral");
+    }
+  });
+
+  /* ══════════ 4c. Hitos, misiones y celebración (celebrateMilestone) ══════════ */
+  function celebrate(key, vars) {
+    const el = $("#celebration");
+    $("#celebration-text").textContent = I18n.t(key, vars);
+    el.classList.remove("hidden");
+    requestAnimationFrame(() => el.classList.add("show"));
+    if (myCreature) {
+      World.burstAt(myCreature.x, myCreature.y, myCreature.hue1, 90);
+      for (let i = 0; i < 5; i++) World.burstAt(Math.random() * innerWidth, Math.random() * innerHeight, myCreature.hue1, 18);
+    }
+    AudioRitual.celebrate();
+    setTimeout(() => {
+      el.classList.remove("show");
+      setTimeout(() => el.classList.add("hidden"), 600);
+    }, 2200);
+  }
+  async function checkMilestone(key, creature) {
+    if (milestones.has(key)) return;
+    milestones.add(key);
+    celebrate("celebrate." + key, { name: creature.name });
+    const result = await Wallet.claimMission(key);
+    if (result) toast(I18n.t("toast.missionDone", { name: I18n.t("mission." + key), amount: result.reward }), "gold");
+  }
+  function checkSurvivalMilestone() {
+    if (myCreature && !myCreature.dead && myCreature.age > 60) checkMilestone("survive", myCreature);
+  }
+
   /* ══════════ 5. Red ══════════ */
   Net.connect({
     onRoster(list, chron) {
       list.forEach(c => {
-        World.add(new Creature(c.genome, { id: c.id, name: c.name || undefined, creator: c.creator, parents: c.parents, bornAt: c.bornAt }),
+        World.add(new Creature(c.genome, { id: c.id, name: c.name || undefined, creator: c.creator, parents: c.parents, bornAt: c.bornAt, cosmetics: c.cosmetics }),
                    { announce: false, burst: false });
       });
       // Si el mundo llega vacío, lo pueblan ancestros locales (solo visuales)
@@ -263,7 +356,7 @@ const App = (() => {
       chron.forEach(e => Chronicle.receive(e));
     },
     onBirth(c) {
-      const nc = World.add(new Creature(c.genome, { id: c.id, name: c.name, creator: c.creator, parents: c.parents }),
+      const nc = World.add(new Creature(c.genome, { id: c.id, name: c.name, creator: c.creator, parents: c.parents, cosmetics: c.cosmetics }),
                            { announce: false });
       toast(I18n.t("toast.bornElsewhere", { name: nc.name }), "coral");
       AudioRitual.sing(nc.genome);
@@ -272,8 +365,83 @@ const App = (() => {
   });
 
   World.on("birth", c => { if (!c.mine) return; });
-  World.on("courtship", e => Chronicle.record("courtship", e));
+  World.on("courtship", e => {
+    Chronicle.record("courtship", e);
+    if (e.a === myCreature || e.b === myCreature) checkMilestone("firstChild", myCreature);
+  });
   World.on("death", c => { if (Math.random() < 0.5) Chronicle.record("death", c); });
+  World.on("event", type => Chronicle.render(I18n.t("event." + type), { broadcast: false }));
+
+  /* ══════════ 5b. Diamantes, tienda y cuenta ══════════ */
+  function renderWallet(state) {
+    $("#diamond-count").textContent = state.diamonds;
+    $("#account-diamonds").textContent = state.diamonds;
+    $("#account-diamonds-guest").textContent = state.diamonds;
+  }
+  Wallet.onChange(renderWallet);
+  renderWallet({ diamonds: Wallet.diamonds }); // Wallet ya pudo haber cargado antes de que nos suscribiéramos
+
+  Shop.init({
+    onUseItem(itemId) {
+      if (!myCreature || myCreature.dead) { toast(I18n.t("shop.needCreature"), "coral"); return; }
+      if (itemId === "food_spark") myCreature.feed();
+      if (itemId === "food_feast") { myCreature.feed(); myCreature.feed(); myCreature.feed(); }
+      if (itemId === "gift_hearts") World.heartsAt(myCreature.x, myCreature.y, myCreature.hue1);
+      if (itemId === "gift_confetti") World.burstAt(myCreature.x, myCreature.y, Math.random() * 360, 40);
+      if (myCreature.feedCount >= 5) checkMilestone("fed5", myCreature);
+    },
+    onEquipmentChange() {
+      if (myCreature) myCreature.cosmetics = Wallet.equippedItems();
+    },
+    onToastMsg: toast
+  });
+  $("#btn-shop").addEventListener("click", () => $("#panel-shop").classList.toggle("is-open"));
+
+  /* --- Cuenta / login --- */
+  let authMode = "signin";
+  function renderAccountPanel() {
+    $$("#panel-account .account-state").forEach(el => el.classList.add("hidden"));
+    if (!Auth.available) {
+      $("#account-unavailable").classList.remove("hidden");
+    } else if (Auth.user) {
+      $("#account-in").classList.remove("hidden");
+      $("#account-welcome").textContent = I18n.t("account.loggedInAs", { name: Auth.displayName });
+    } else {
+      $("#account-guest").classList.remove("hidden");
+    }
+  }
+  function setAuthMode(mode) {
+    authMode = mode;
+    $("#account-name-field").classList.toggle("hidden", mode !== "signup");
+    $("#account-submit").textContent = I18n.t(mode === "signup" ? "account.signUp" : "account.signIn");
+    $("#account-toggle").textContent = I18n.t(mode === "signup" ? "account.toggleToSignIn" : "account.toggleToSignUp");
+    $("#account-error").classList.add("hidden");
+  }
+  $("#btn-account").addEventListener("click", () => { renderAccountPanel(); $("#panel-account").classList.toggle("is-open"); });
+  $("#account-toggle").addEventListener("click", () => setAuthMode(authMode === "signup" ? "signin" : "signup"));
+  $("#account-form").addEventListener("submit", async e => {
+    e.preventDefault();
+    const email = $("#account-email").value.trim();
+    const password = $("#account-password").value;
+    const errEl = $("#account-error");
+    try {
+      if (authMode === "signup") await Auth.signUp(email, password, $("#account-name").value.trim());
+      else await Auth.signIn(email, password);
+      renderAccountPanel();
+    } catch {
+      errEl.textContent = I18n.t("account.error.generic");
+      errEl.classList.remove("hidden");
+    }
+  });
+  $("#account-signout").addEventListener("click", async () => { await Auth.signOut(); renderAccountPanel(); });
+  Auth.onChange(() => { renderAccountPanel(); if (myCreature) myCreature.cosmetics = Wallet.equippedItems(); });
+  setAuthMode("signin");
+
+  /* ══════════ 5c. Ranking en vivo ══════════ */
+  Leaderboard.init(() => myCreature?.id);
+  $("#btn-leaderboard").addEventListener("click", () => Leaderboard.open());
+  $("#lb-close").addEventListener("click", () => Leaderboard.close());
+  $$(".lb-tab").forEach(b => b.addEventListener("click", () => Leaderboard.setMetric(b.dataset.metric)));
 
   /* ══════════ 6. Toasts ══════════ */
   function toast(msg, tone = "") {
@@ -311,7 +479,11 @@ const App = (() => {
     World.burstAt(myCreature.x, myCreature.y, myCreature.hue1, 30);
     toast(I18n.t("toast.creatureShines", { name: myCreature.name }));
   });
-  addEventListener("keydown", e => { if (e.key === "Escape") $$(".panel").forEach(p => p.classList.remove("is-open")); });
+  addEventListener("keydown", e => {
+    if (e.key !== "Escape") return;
+    $$(".panel").forEach(p => p.classList.remove("is-open"));
+    if (Leaderboard.isOpen) Leaderboard.close();
+  });
 
   // primera línea de la Crónica
   Chronicle.render(I18n.t("chronicle.firstLine"), { broadcast: false });

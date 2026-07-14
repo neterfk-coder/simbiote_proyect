@@ -88,7 +88,7 @@ const Net = (() => {
   function sendBirth(creature) {
     if (online && socket) socket.emit("birth", {
       id: creature.id, name: creature.name, genome: creature.genome,
-      parents: creature.parents, creator: creature.creator
+      parents: creature.parents, creator: creature.creator, cosmetics: creature.cosmetics
     });
   }
   function sendChronicle(entry) {

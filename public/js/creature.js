@@ -8,6 +8,11 @@
 class Creature {
   constructor(genome, opts = {}) {
     const G = DNA.G;
+    this.cosmetics = opts.cosmetics || [];
+    // artefactos: pequeño empujón permanente al gen correspondiente
+    if (this.cosmetics.includes("art_amulet_social")) genome[G.SOCIAL] = Math.min(1, genome[G.SOCIAL] + 0.12);
+    if (this.cosmetics.includes("art_relic_glow")) genome[G.GLOW] = Math.min(1, genome[G.GLOW] + 0.15);
+
     this.genome = genome;
     this.id = opts.id || ("c" + Math.random().toString(36).slice(2, 10));
     this.name = opts.name || DNA.nameOf(genome);
@@ -22,14 +27,21 @@ class Creature {
     this.seed = Math.random() * 1000;
     this.age = 0;
     this.maxAge = 60 + genome[G.LIFESPAN] * 240;   // 1–5 min de vida
+    if (this.cosmetics.includes("art_shell_lifespan")) this.maxAge *= 1.15;
     this.energy = 1;
     this.mateCooldown = 20;
     this.trail = [];
     this.dead = false;
     this.courting = null;
+    this.dragging = false;
+    this.feedCount = 0;
+    this.childCount = 0;
+    this.growthBonus = 1;
+    this.feedPulse = 0;
 
     // rasgos derivados (se calculan una vez)
-    this.r = 16 + genome[G.SIZE] * 30;
+    this.baseR = 16 + genome[G.SIZE] * 30;
+    this.r = this.baseR;
     this.lobes = 3 + Math.round(genome[G.LOBES] * 6);
     this.eyes = 1 + Math.round(genome[G.EYES] * 2);
     this.tent = Math.round(genome[G.TENTACLES] * 8);
@@ -39,44 +51,84 @@ class Creature {
 
   get lifeRatio() { return 1 - this.age / this.maxAge; }
 
+  /* Alimentar: crece un poco (con tope) y extiende su vida (feedCreature) */
+  feed() {
+    const G = DNA.G;
+    this.feedCount++;
+    this.feedPulse = 1;
+    this.maxAge += 22;
+    this.genome[G.LIFESPAN] = Math.min(1, this.genome[G.LIFESPAN] + 0.015);
+    this.growthBonus = Math.min(1.55, this.growthBonus + 0.06);
+    this.r = this.baseR * this.growthBonus;
+  }
+
   /* ---------- Comportamiento ---------- */
   update(p, world, dt) {
     const G = DNA.G, g = this.genome;
     this.age += dt;
     if (this.age > this.maxAge) { this.dead = true; return; }
     this.mateCooldown = Math.max(0, this.mateCooldown - dt);
+    if (this.feedPulse > 0) this.feedPulse = Math.max(0, this.feedPulse - dt * 1.1);
+
+    if (this.dragging) {
+      // la criatura está siendo arrastrada por su creador (proposeCourtship)
+      this.trail.push({ x: this.x, y: this.y });
+      const maxTrail = 4 + Math.round(g[G.TRAIL] * 26);
+      while (this.trail.length > maxTrail) this.trail.shift();
+      return;
+    }
 
     // deriva de ruido Perlin (nado orgánico)
     const t = p.millis() * 0.0001 * (0.5 + g[G.SPEED]);
     let ax = (p.noise(this.seed, t) - 0.5) * 2;
     let ay = (p.noise(this.seed + 99, t) - 0.5) * 2;
+    let called = false;
 
-    // sociabilidad: atracción suave al vecino compatible
-    if (this.courting && !this.courting.dead) {
-      const d = p.dist(this.x, this.y, this.courting.x, this.courting.y);
-      ax += (this.courting.x - this.x) / Math.max(d, 1) * 1.6;
-      ay += (this.courting.y - this.y) / Math.max(d, 1) * 1.6;
-    } else if (g[G.SOCIAL] > 0.5 && world.creatures.length > 1) {
-      const near = world.nearest(this);
-      if (near) {
-        const d = p.dist(this.x, this.y, near.x, near.y);
-        if (d > 120) {
-          ax += (near.x - this.x) / d * g[G.SOCIAL] * 0.5;
-          ay += (near.y - this.y) / d * g[G.SOCIAL] * 0.5;
+    // llamada del creador: pull fuerte y prioritario hacia el cursor (callMyCreature)
+    if (this.mine && world.pointer && world.pointer.held) {
+      const d = p.dist(this.x, this.y, world.pointer.x, world.pointer.y);
+      if (d > 6) {
+        ax += (world.pointer.x - this.x) / d * 2.4;
+        ay += (world.pointer.y - this.y) / d * 2.4;
+        called = true;
+      }
+    }
+
+    if (!called) {
+      // sociabilidad: atracción suave al vecino compatible
+      if (this.courting && !this.courting.dead) {
+        const d = p.dist(this.x, this.y, this.courting.x, this.courting.y);
+        ax += (this.courting.x - this.x) / Math.max(d, 1) * 1.6;
+        ay += (this.courting.y - this.y) / Math.max(d, 1) * 1.6;
+      } else if (g[G.SOCIAL] > 0.5 && world.creatures.length > 1) {
+        const near = world.nearest(this);
+        if (near) {
+          const d = p.dist(this.x, this.y, near.x, near.y);
+          if (d > 120) {
+            ax += (near.x - this.x) / d * g[G.SOCIAL] * 0.5;
+            ay += (near.y - this.y) / d * g[G.SOCIAL] * 0.5;
+          }
+        }
+      }
+
+      // curiosidad: se acerca al cursor del visitante
+      if (world.pointer && g[G.CURIOUS] > 0.45) {
+        const d = p.dist(this.x, this.y, world.pointer.x, world.pointer.y);
+        if (d < 260 && d > 60) {
+          ax += (world.pointer.x - this.x) / d * g[G.CURIOUS] * 0.8;
+          ay += (world.pointer.y - this.y) / d * g[G.CURIOUS] * 0.8;
         }
       }
     }
 
-    // curiosidad: se acerca al cursor del visitante
-    if (world.pointer && g[G.CURIOUS] > 0.45) {
-      const d = p.dist(this.x, this.y, world.pointer.x, world.pointer.y);
-      if (d < 260 && d > 60) {
-        ax += (world.pointer.x - this.x) / d * g[G.CURIOUS] * 0.8;
-        ay += (world.pointer.y - this.y) / d * g[G.CURIOUS] * 0.8;
-      }
+    // evento del ecosistema: corriente que arrastra a todos hacia el centro
+    if (world.activeEvent?.type === "current") {
+      const cx = p.width / 2, cy = p.height / 2;
+      const d = p.dist(this.x, this.y, cx, cy);
+      if (d > 20) { ax += (cx - this.x) / d * 0.9; ay += (cy - this.y) / d * 0.9; }
     }
 
-    const speed = 0.35 + g[G.SPEED] * 1.4;
+    const speed = (called ? 1.6 : 1) * (0.35 + g[G.SPEED] * 1.4);
     this.vx = p.lerp(this.vx, ax * speed, 0.05 + g[G.WOBBLE] * 0.05);
     this.vy = p.lerp(this.vy, ay * speed, 0.05 + g[G.WOBBLE] * 0.05);
     this.x += this.vx; this.y += this.vy;
@@ -92,6 +144,16 @@ class Creature {
     while (this.trail.length > maxTrail) this.trail.shift();
   }
 
+  /* Cuenta de vecinos cercanos ahora mismo (updateLeaderboard: "más social") */
+  nearbyCount(world, radius = 140) {
+    let n = 0;
+    for (const c of world.creatures) {
+      if (c === this || c.dead) continue;
+      if (Math.hypot(c.x - this.x, c.y - this.y) < radius) n++;
+    }
+    return n;
+  }
+
   /* ---------- Anatomía ---------- */
   draw(p) {
     const G = DNA.G, g = this.genome;
@@ -103,6 +165,14 @@ class Creature {
     p.push();
     p.translate(this.x, this.y);
 
+    // pulso al ser alimentada (feedCreature)
+    if (this.feedPulse > 0) {
+      p.noFill();
+      p.stroke(48, 80, 95, this.feedPulse * 0.7);
+      p.strokeWeight(2 + this.feedPulse * 2);
+      p.circle(0, 0, r * (2.1 + (1 - this.feedPulse) * 1.4));
+    }
+
     // estela
     p.noFill();
     for (let i = 1; i < this.trail.length; i++) {
@@ -112,12 +182,24 @@ class Creature {
       const q = this.trail[i - 1], w = this.trail[i];
       p.line(q.x - this.x, q.y - this.y, w.x - this.x, w.y - this.y);
     }
+    // vestimenta: estela de chispas
+    if (this.cosmetics.includes("wear_trail_sparkle")) {
+      p.noStroke();
+      for (let i = 0; i < this.trail.length; i += 2) {
+        const w = this.trail[i];
+        const tw = (Math.sin(t * 6 + i) + 1) / 2;
+        p.fill(48, 80, 100, tw * 0.7 * alive);
+        p.circle(w.x - this.x, w.y - this.y, 2 + tw * 2);
+      }
+    }
 
-    // aura bioluminiscente
+    // aura bioluminiscente (vestimenta: aura de color propio)
+    const auraHue = this.cosmetics.includes("wear_aura_gold") ? 45
+      : this.cosmetics.includes("wear_aura_violet") ? 275 : this.hue1;
     const auraR = r * (1.6 + g[G.AURA] * 1.4);
     for (let i = 3; i > 0; i--) {
       p.noStroke();
-      p.fill(this.hue1, 70, 90, 0.05 * g[G.GLOW] * i * alive);
+      p.fill(auraHue, 70, 90, 0.05 * g[G.GLOW] * i * alive);
       p.circle(0, 0, auraR * (i / 1.4));
     }
 
@@ -152,12 +234,66 @@ class Creature {
       p.endShape(p.CLOSE);
     }
 
+    // vestimenta: collar de espinas
+    if (this.cosmetics.includes("wear_collar")) {
+      p.noFill();
+      p.stroke(0, 0, 88, 0.75 * alive);
+      p.strokeWeight(2);
+      p.circle(0, 0, r * 1.42);
+      p.strokeWeight(1.4);
+      for (let i = 0; i < 10; i++) {
+        const a = (i / 10) * p.TWO_PI;
+        const x1 = Math.cos(a) * r * 0.71, y1 = Math.sin(a) * r * 0.71;
+        const x2 = Math.cos(a) * r * 0.85, y2 = Math.sin(a) * r * 0.85;
+        p.line(x1, y1, x2, y2);
+      }
+    }
+    // vestimenta: corona de cristal
+    if (this.cosmetics.includes("wear_crown")) {
+      p.noStroke();
+      p.fill(48, 55, 100, 0.9 * alive);
+      for (let i = -1; i <= 1; i++) {
+        const cx = i * r * 0.32, ch = r * (i === 0 ? 0.5 : 0.34);
+        p.triangle(cx - r * 0.14, -r * 0.78, cx + r * 0.14, -r * 0.78, cx, -r * 0.78 - ch);
+      }
+      p.fill(190, 70, 100, 0.9 * alive);
+      p.circle(0, -r * 0.78 - r * 0.5, r * 0.14);
+    }
+
+    // nombre (visible siempre, no rota con el movimiento)
+    if (alive > 0) {
+      p.noStroke();
+      p.textAlign(p.CENTER, p.BOTTOM);
+      p.textSize(Math.max(10, r * 0.34));
+      p.fill(0, 0, 100, 0.5 * alive + 0.1);
+      p.text(this.name, 0, -r - 10);
+    }
+
     // ojos
     p.rotate(Math.atan2(this.vy, this.vx));
     for (let i = 0; i < this.eyes; i++) {
       const off = (i - (this.eyes - 1) / 2) * r * 0.42;
       p.fill(0, 0, 12, 0.95 * alive); p.circle(r * 0.32, off, r * 0.30);
       p.fill(0, 0, 100, 0.95 * alive); p.circle(r * 0.36, off - r * 0.05, r * 0.11);
+    }
+    p.pop();
+  }
+
+  /* Solo los ojos brillan (evento del ecosistema: apagón) */
+  drawEyesOnly(p) {
+    const alive = this.lifeRatio;
+    p.push();
+    p.translate(this.x, this.y);
+    p.noStroke();
+    p.textAlign(p.CENTER, p.BOTTOM);
+    p.textSize(Math.max(10, this.r * 0.3));
+    p.fill(0, 0, 100, 0.22 * alive);
+    p.text(this.name, 0, -this.r - 8);
+    p.rotate(Math.atan2(this.vy, this.vx));
+    for (let i = 0; i < this.eyes; i++) {
+      const off = (i - (this.eyes - 1) / 2) * this.r * 0.42;
+      p.fill(this.hue1, 35, 100, 0.95 * alive);
+      p.circle(this.r * 0.34, off, this.r * 0.18);
     }
     p.pop();
   }

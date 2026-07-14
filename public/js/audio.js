@@ -106,5 +106,11 @@ const AudioRitual = (() => {
     birthSynth.triggerAttackRelease(chord, "2n");
   }
 
-  return { listen, wake, sing, birthChord };
+  /* Fanfarria de celebración (celebrateMilestone) */
+  function celebrate() {
+    if (!toneReady || !window.SIMBIONTE_SOUND) return;
+    ["C4", "E4", "G4", "C5"].forEach((n, i) => setTimeout(() => birthSynth.triggerAttackRelease(n, "8n"), i * 90));
+  }
+
+  return { listen, wake, sing, birthChord, celebrate };
 })();
