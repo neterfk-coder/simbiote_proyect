@@ -268,6 +268,14 @@ button { font-family: var(--body); cursor: pointer; color: inherit; background: 
 @keyframes blink { 50% { opacity: .3; } }
 .presence { font-size: .72rem; color: var(--fog-dim); }
 
+/* En escritorio, hud-secondary no es más que un contenedor invisible:
+   sus hijos (idioma, ranking, tienda, sonido, crónica) se ven igual
+   que si fueran hijos directos de .hud-right. En móvil se convierte
+   en un menú desplegable (ver media query más abajo). */
+.hud-secondary { display: contents; }
+.hud-more-toggle { display: none; }
+.hud-secondary-label { display: none; }
+
 .diamond-pill {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 14px; border-radius: 999px;
@@ -586,13 +594,43 @@ button { font-family: var(--body); cursor: pointer; color: inherit; background: 
 /* ═══ Responsive & accesibilidad ═══ */
 @media (max-width: 640px) {
   .ritual-card { padding: 36px 22px 30px; }
-  .hud-left { padding: 8px 14px; }
+  .hud-left { padding: 8px 12px; gap: 8px; max-width: 58vw; }
+  .hud-brand { font-size: .72rem; white-space: nowrap; }
+  .net-status span:last-child { display: none; }
   .presence { display: none; }
   .capture-frame { height: 230px; }
   .shop-card { grid-template-columns: 34px 1fr; }
   .shop-card-btn { grid-column: 1 / -1; }
   .lb-screen { padding: 22px 16px 16px; max-height: calc(100vh - 32px); }
   .lb-table th:nth-child(3), .lb-table td:nth-child(3) { display: none; }
+
+  /* HUD derecho: colapsa las acciones secundarias en un menú "⋯" */
+  .hud-right { gap: 6px; padding: 6px 8px; }
+  .diamond-pill { padding: 8px 10px; font-size: .78rem; }
+  .hud-more-toggle { display: grid; width: 36px; height: 36px; }
+  .hud-secondary {
+    display: none; position: fixed; top: 66px; right: 12px; z-index: 25;
+    flex-direction: column; gap: 4px; width: 208px;
+    background: var(--panel-solid); border: 1px solid var(--line); border-radius: 18px;
+    padding: 10px; box-shadow: var(--shadow);
+  }
+  .hud-secondary.is-open { display: flex; }
+  .hud-secondary .lang-switch { border-right: none; margin: 0 0 4px; padding: 3px; justify-content: center; background: rgba(255,255,255,.04); }
+  .hud-secondary .icon-btn {
+    width: auto; height: auto; border-radius: 12px;
+    display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 10px 12px;
+  }
+  .hud-secondary-label { display: inline; font-size: .82rem; color: var(--fog); }
+  #btn-new { padding: 10px 14px; font-size: 1.1rem; }
+  .btn-new-label { display: none; }
+
+  /* Esquina inferior izquierda: juguetes más compactos */
+  .toy-btn { width: 36px; height: 36px; font-size: 1.05rem; }
+  .my-card { padding: 14px 16px; }
+
+  /* Pantallas completas (ranking, cuenta): que no queden tapadas por el HUD fijo */
+  .lb-screen-outer, .account-screen-outer { align-items: flex-start; padding-top: 84px; }
+  .lb-screen, .account-screen { max-height: calc(100vh - 100px); }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }

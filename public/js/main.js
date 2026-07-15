@@ -43,6 +43,7 @@ const App = (() => {
       p.createCanvas(innerWidth, innerHeight).parent("world-canvas");
       p.colorMode(p.HSB, 360, 100, 100, 1);
       World.initPlankton(p);
+      p.attachPinchListeners();
     };
     p.windowResized = () => { p.resizeCanvas(innerWidth, innerHeight); World.initPlankton(p); };
     p.draw = () => {
@@ -61,41 +62,36 @@ const App = (() => {
       if (draggingToy) drawToyCursor(p, draggingToy);
       checkSurvivalMilestone();
     };
-    p.mousePressed = e => {
-      // p5 dispara mousePressed para cualquier clic en la página, no solo
-      // en el lienzo: hay que ignorar los clics sobre botones/paneles del HUD.
-      if (e && e.target && e.target.tagName !== "CANVAS") return;
-      if (!isOnWorldScreen()) return;
-      const w = screenToWorld(p.mouseX, p.mouseY);
-
+    /* --- Gestos: compartidos entre mouse y toque de un dedo --- */
+    function pointerDown(sx, sy) {
+      const w = screenToWorld(sx, sy);
       const f = World.foodAt(w.x, w.y);
       if (f) { draggingFood = f; World.dragFood(f, w.x, w.y); return; }
-
       if (myCreature && !myCreature.dead && Math.hypot(myCreature.x - w.x, myCreature.y - w.y) < myCreature.r + 18) {
         draggingCreature = true;
         myCreature.dragging = true;
         return;
       }
       // ni comida ni mi criatura: puede ser un toque (inspeccionar) o el inicio de un arrastre de cámara
-      panFrom = { sx: p.mouseX, sy: p.mouseY, camX: camera.x, camY: camera.y };
+      panFrom = { sx, sy, camX: camera.x, camY: camera.y };
       isPanning = false;
-    };
-    p.mouseDragged = () => {
-      if (draggingFood) { const w = screenToWorld(p.mouseX, p.mouseY); World.dragFood(draggingFood, w.x, w.y); return; }
+    }
+    function pointerDrag(sx, sy) {
+      if (draggingFood) { const w = screenToWorld(sx, sy); World.dragFood(draggingFood, w.x, w.y); return; }
       if (draggingCreature && myCreature) {
-        const w = screenToWorld(p.mouseX, p.mouseY);
+        const w = screenToWorld(sx, sy);
         myCreature.x = w.x; myCreature.y = w.y;
         return;
       }
       if (panFrom) {
-        const dx = p.mouseX - panFrom.sx, dy = p.mouseY - panFrom.sy;
+        const dx = sx - panFrom.sx, dy = sy - panFrom.sy;
         if (!isPanning && Math.hypot(dx, dy) > 6) isPanning = true;
         if (isPanning) { camera.x = panFrom.camX - dx / camera.zoom; camera.y = panFrom.camY - dy / camera.zoom; }
       }
-    };
-    p.mouseReleased = () => {
+    }
+    function pointerUp(sx, sy) {
       if (draggingFood) {
-        const w = screenToWorld(p.mouseX, p.mouseY);
+        const w = screenToWorld(sx, sy);
         const fed = World.releaseFood(draggingFood, w.x, w.y);
         if (fed) {
           toast(I18n.t("toast.fed", { name: fed.name }));
@@ -107,7 +103,7 @@ const App = (() => {
       if (draggingCreature && myCreature) {
         myCreature.dragging = false;
         draggingCreature = false;
-        const w = screenToWorld(p.mouseX, p.mouseY);
+        const w = screenToWorld(sx, sy);
         const t = Courtship.endDrag(myCreature, w.x, w.y);
         if (t) openCourtshipProposal(myCreature, t);
         return;
@@ -116,21 +112,76 @@ const App = (() => {
         if (!isPanning) { const w = screenToWorld(panFrom.sx, panFrom.sy); inspectAt(w.x, w.y); }
         panFrom = null; isPanning = false;
       }
-    };
-    p.mouseWheel = e => {
-      if (!isOnWorldScreen()) return;
-      const before = screenToWorld(p.mouseX, p.mouseY);
-      camera.zoom *= e.delta > 0 ? 0.9 : 1.1;
+    }
+    function zoomAt(sx, sy, factor) {
+      const before = screenToWorld(sx, sy);
+      camera.zoom *= factor;
       clampCamera();
-      const after = screenToWorld(p.mouseX, p.mouseY);
+      const after = screenToWorld(sx, sy);
       camera.x += before.x - after.x;
       camera.y += before.y - after.y;
+    }
+
+    /* --- Ratón (escritorio) --- */
+    p.mousePressed = e => {
+      // p5 dispara mousePressed para cualquier clic en la página, no solo
+      // en el lienzo: hay que ignorar los clics sobre botones/paneles del HUD.
+      if (e && e.target && e.target.tagName !== "CANVAS") return;
+      if (!isOnWorldScreen()) return;
+      pointerDown(p.mouseX, p.mouseY);
+    };
+    p.mouseDragged = () => pointerDrag(p.mouseX, p.mouseY);
+    p.mouseReleased = () => pointerUp(p.mouseX, p.mouseY);
+    p.mouseWheel = e => {
+      if (!isOnWorldScreen()) return;
+      zoomAt(p.mouseX, p.mouseY, e.delta > 0 ? 0.9 : 1.1);
       return false;
     };
     p.doubleClicked = e => {
       if (e && e.target && e.target.tagName !== "CANVAS") return;
       if (!isOnWorldScreen()) return;
       camera.x = 0; camera.y = 0; camera.zoom = 1;
+    };
+
+    /* --- Pellizco de 2 dedos para hacer zoom (móvil) ---
+       ¡Importante! No usamos p.touchStarted/Moved/Ended: definir esos
+       métodos apaga la simulación automática de p5 de mouse a partir de
+       touch, y con ella se rompe hasta el tap normal sobre botones del
+       DOM (el gesto de 1 dedo en el lienzo ya funciona bien vía esa
+       simulación). En cambio, escuchamos touch nativo directo sobre el
+       propio <canvas> y solo intervenimos cuando hay 2+ dedos. */
+    const canvasEl = () => p.canvas;
+    let pinch = null;
+    const touchDist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    const touchMid = (t, rect) => ({
+      x: (t[0].clientX + t[1].clientX) / 2 - rect.left,
+      y: (t[0].clientY + t[1].clientY) / 2 - rect.top
+    });
+    function onTouchStart(e) {
+      if (!isOnWorldScreen() || e.touches.length < 2) { pinch = null; return; }
+      pinch = { dist: touchDist(e.touches), zoom: camera.zoom };
+      draggingFood = null; draggingCreature = false; panFrom = null;
+      e.preventDefault();
+    }
+    function onTouchMove(e) {
+      if (!pinch || e.touches.length < 2) return;
+      const rect = canvasEl().getBoundingClientRect();
+      const mid = touchMid(e.touches, rect);
+      const before = screenToWorld(mid.x, mid.y);
+      camera.zoom = pinch.zoom * (touchDist(e.touches) / pinch.dist);
+      clampCamera();
+      const after = screenToWorld(mid.x, mid.y);
+      camera.x += before.x - after.x;
+      camera.y += before.y - after.y;
+      e.preventDefault();
+    }
+    function onTouchEnd(e) { if (e.touches.length < 2) pinch = null; }
+    p.attachPinchListeners = () => {
+      const el = canvasEl();
+      el.addEventListener("touchstart", onTouchStart, { passive: false });
+      el.addEventListener("touchmove", onTouchMove, { passive: false });
+      el.addEventListener("touchend", onTouchEnd);
+      el.addEventListener("touchcancel", onTouchEnd);
     };
   });
 
@@ -652,6 +703,23 @@ const App = (() => {
   });
   $("#btn-chronicle").addEventListener("click", () => $("#panel-chronicle").classList.toggle("is-open"));
   $$(".panel-close").forEach(b => b.addEventListener("click", () => $("#" + b.dataset.close).classList.remove("is-open")));
+
+  /* Menú "⋯" del HUD en móvil: agrupa idioma/ranking/tienda/sonido/crónica */
+  function closeHudMore() {
+    $("#hud-secondary").classList.remove("is-open");
+    $("#btn-hud-more").setAttribute("aria-expanded", "false");
+  }
+  $("#btn-hud-more").addEventListener("click", e => {
+    e.stopPropagation();
+    const open = $("#hud-secondary").classList.toggle("is-open");
+    $("#btn-hud-more").setAttribute("aria-expanded", String(open));
+  });
+  $("#hud-secondary").addEventListener("click", e => {
+    if (e.target.closest("button")) closeHudMore();
+  });
+  document.addEventListener("click", e => {
+    if (!e.target.closest("#hud-secondary") && !e.target.closest("#btn-hud-more")) closeHudMore();
+  });
   $("#btn-cert").addEventListener("click", () => myCreature && Certificate.download(myCreature, p5world));
   $("#btn-find").addEventListener("click", () => {
     if (!myCreature || myCreature.dead) { toast(I18n.t("toast.creatureIsFossil"), "coral"); return; }
@@ -664,6 +732,7 @@ const App = (() => {
     $$(".panel").forEach(p => p.classList.remove("is-open"));
     if (Leaderboard.isOpen) Leaderboard.close();
     if ($("#screen-account").classList.contains("is-active")) closeAccountScreen();
+    closeHudMore();
   });
 
   // primera línea de la Crónica

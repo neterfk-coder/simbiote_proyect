@@ -59,7 +59,7 @@ const I18n = (() => {
       "hud.soundTitle": "Sonido del ecosistema",
       "hud.chronicleAria": "Abrir la Crónica",
       "hud.chronicleTitle": "La Crónica del mundo",
-      "hud.newCreature": "+ Nueva criatura",
+      "hud.newCreatureLabel": "Nueva criatura",
 
       "mycard.eyebrow": "Tu criatura",
       "mycard.epithetPrefix": "de {epithet}",
@@ -288,7 +288,7 @@ const I18n = (() => {
       "hud.soundTitle": "Sound of the ecosystem",
       "hud.chronicleAria": "Open the Chronicle",
       "hud.chronicleTitle": "The Chronicle of the world",
-      "hud.newCreature": "+ New creature",
+      "hud.newCreatureLabel": "New creature",
 
       "mycard.eyebrow": "Your creature",
       "mycard.epithetPrefix": "of {epithet}",
