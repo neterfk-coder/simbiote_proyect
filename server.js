@@ -13,6 +13,15 @@ const express = require('express');
 const { Server } = require('socket.io');
 
 const app = express();
+// El frontend vive en otro dominio (Vercel) que el servidor (Render):
+// las rutas /api/* necesitan CORS igual que ya tiene Socket.io.
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
 app.use(express.json({ limit: '200kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 

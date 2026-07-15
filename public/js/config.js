@@ -9,7 +9,7 @@ window.SIMBIONTE_CONFIG = {
      · En desarrollo local:  ""  (usa el mismo origen: node server.js)
      · En producción: la URL de tu servidor en Render, p. ej.
        "https://simbionte-server.onrender.com"                      */
-  SERVER_URL: "",
+  SERVER_URL: "https://simbionte-server.onrender.com",
 
   /* Supabase directo desde el navegador (opcional, para leer el
      archivo fósil / genealogías públicas). Usa SOLO la clave "anon".
