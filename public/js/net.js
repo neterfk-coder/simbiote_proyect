@@ -50,17 +50,30 @@ const Net = (() => {
     return data || [];
   }
 
-  /* ---------- Socket.io ---------- */
+  /* ---------- Socket.io ----------
+     Los servicios gratuitos (Render) "duermen" tras ~15 min sin
+     tráfico y pueden tardar 30-50 s en despertar. Los timeouts de
+     abajo (y el ping temprano en /api/health) están pensados para
+     tolerar ese arranque en frío sin caer en modo santuario y
+     perder para siempre el envío de la criatura del visitante. */
+  const CONNECT_GRACE_MS = 25000;
+
+  function wakeServer(base) {
+    fetch((base || "") + "/api/health").catch(() => {});
+  }
+
   function connect({ onRoster, onBirth, onChronicle }) {
     initSupabase();
     if (typeof io === "undefined") { sanctuary(onRoster); return; }
     setStatus("connecting");
     const base = window.SIMBIONTE_CONFIG?.SERVER_URL || undefined;
+    wakeServer(base); // despierta el servidor por HTTP en paralelo al handshake de sockets
     try {
-      socket = base ? io(base, { timeout: 4000 }) : io({ timeout: 4000 });
+      socket = base ? io(base, { timeout: CONNECT_GRACE_MS }) : io({ timeout: CONNECT_GRACE_MS });
     } catch { sanctuary(onRoster); return; }
 
-    const fallback = setTimeout(() => { if (!online) sanctuary(onRoster); }, 4500);
+    let settled = false;
+    const fallback = setTimeout(() => { if (!online) { settled = true; sanctuary(onRoster); } }, CONNECT_GRACE_MS);
 
     socket.on("connect", () => {
       online = true; clearTimeout(fallback);
@@ -71,7 +84,9 @@ const Net = (() => {
     socket.on("chronicle", e => onChronicle(e));
     socket.on("presence", p => setStatus("online", { online: p.online }));
     socket.on("disconnect", () => { online = false; setStatus("offline"); });
-    socket.on("connect_error", () => { if (!online) { clearTimeout(fallback); sanctuary(onRoster); } });
+    socket.on("connect_error", () => {
+      if (!online && !settled) { settled = true; clearTimeout(fallback); sanctuary(onRoster); }
+    });
   }
 
   /* Modo santuario: el mundo se puebla con ancestros simulados */
