@@ -198,37 +198,97 @@
   <div id="shop-grid" class="shop-grid"></div>
 </aside>
 
-<!-- Cuenta / Login -->
-<aside id="panel-account" class="panel glass account-panel" aria-label="Tu cuenta">
-  <div class="panel-head">
-    <h3 class="panel-title" data-i18n="account.title">Tu cuenta</h3>
-    <button class="icon-btn panel-close" data-close="panel-account" data-i18n-aria="account.closeAria" aria-label="Cerrar cuenta">✕</button>
-  </div>
+<!-- ═══ PANTALLA: CUENTA (login) ═══ -->
+<section id="screen-account" class="screen account-screen-outer">
+  <div class="account-screen glass">
+    <button id="account-back" class="icon-btn account-back" data-i18n-aria="account.closeAria" aria-label="Cerrar">✕</button>
 
-  <div id="account-guest" class="account-state hidden">
-    <p class="panel-sub" id="account-guest-note">—</p>
-    <form id="account-form" class="account-form">
-      <label><span data-i18n="account.email">Correo</span><input id="account-email" type="email" autocomplete="email" required></label>
-      <label id="account-name-field" class="hidden"><span data-i18n="account.displayName">Nombre para mostrar</span><input id="account-name" type="text" maxlength="24" autocomplete="nickname"></label>
-      <label><span data-i18n="account.password">Contraseña</span><input id="account-password" type="password" autocomplete="current-password" minlength="6" required></label>
-      <p id="account-error" class="account-error hidden"></p>
-      <button id="account-submit" type="submit" class="btn btn-primary" data-i18n="account.signIn">Iniciar sesión</button>
-      <button id="account-toggle" type="button" class="btn btn-ghost btn-small" data-i18n="account.toggleToSignUp">¿No tienes cuenta? Crear una</button>
-    </form>
-  </div>
+    <div class="account-hero">
+      <div id="account-hero-canvas" class="account-hero-canvas" aria-hidden="true"></div>
+      <div class="account-hero-content">
+        <div class="account-hero-brand">
+          <span class="account-hero-mark">◉</span>
+          <div>
+            <strong>SIMBIONTE</strong>
+            <span data-i18n="account.hero.kicker">Ecosistema de arte vivo</span>
+          </div>
+        </div>
+        <h1 class="account-hero-title" data-i18n="account.hero.title">Tu criatura te espera en <em>cualquier dispositivo</em>.</h1>
+        <p class="account-hero-sub" data-i18n="account.hero.sub">Creá una cuenta y tus diamantes, tu inventario y tu criatura viajan con vos. También podés jugar sin registrarte.</p>
 
-  <div id="account-in" class="account-state hidden">
-    <p class="panel-sub" id="account-welcome">—</p>
-    <div class="lb-row"><span data-i18n="hud.diamondsAria">Tus diamantes</span><strong id="account-diamonds">0</strong></div>
-    <button id="account-signout" class="btn btn-ghost btn-small" data-i18n="account.signOut">Cerrar sesión</button>
-  </div>
+        <div class="account-hero-stats">
+          <div><strong id="account-stat-alive">—</strong><span data-i18n="account.hero.statAlive">criaturas vivas</span></div>
+          <div><strong id="account-stat-online">—</strong><span data-i18n="account.hero.statOnline">presencias</span></div>
+          <div><strong>0$</strong><span data-i18n="account.hero.statCost">costo</span></div>
+        </div>
 
-  <div id="account-unavailable" class="account-state hidden">
-    <p class="panel-sub" data-i18n="account.guestNote">Modo invitado: tus diamantes se guardan en este navegador.</p>
-    <p class="panel-sub muted" data-i18n="account.unavailable">Las cuentas no están configuradas en este servidor todavía.</p>
-    <div class="lb-row"><span data-i18n="hud.diamondsAria">Tus diamantes</span><strong id="account-diamonds-guest">0</strong></div>
+        <ul class="account-hero-features">
+          <li><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="account.hero.feat1">Mundo compartido en tiempo real</span></li>
+          <li><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="account.hero.feat2">Tu progreso, guardado siempre</span></li>
+          <li><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="account.hero.feat3">Sin anuncios, gratis</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="account-panel-card">
+      <div id="account-guest" class="account-state hidden">
+        <div class="account-tabs" role="tablist">
+          <button type="button" class="account-tab is-active" data-mode="signin" data-i18n="account.signIn">Iniciar sesión</button>
+          <button type="button" class="account-tab" data-mode="signup" data-i18n="account.signUp">Registrarse</button>
+        </div>
+        <p class="account-note" id="account-guest-note">—</p>
+        <form id="account-form" class="account-form-v2" novalidate>
+          <label id="account-name-field" class="account-field hidden">
+            <span data-i18n="account.displayName">Nombre completo</span>
+            <span class="account-input-wrap">
+              <svg class="account-input-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+              <input id="account-name" type="text" maxlength="24" autocomplete="nickname" data-i18n-placeholder="account.namePlaceholder" placeholder="Tu nombre">
+            </span>
+          </label>
+          <label class="account-field">
+            <span data-i18n="account.email">Correo electrónico</span>
+            <span class="account-input-wrap">
+              <svg class="account-input-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+              <input id="account-email" type="email" autocomplete="email" required data-i18n-placeholder="account.emailPlaceholder" placeholder="tucorreo@ejemplo.com">
+            </span>
+          </label>
+          <label class="account-field">
+            <span data-i18n="account.password">Contraseña</span>
+            <span class="account-input-wrap">
+              <svg class="account-input-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+              <input id="account-password" type="password" autocomplete="current-password" minlength="6" required data-i18n-placeholder="account.passwordPlaceholder" placeholder="Mínimo 6 caracteres">
+            </span>
+          </label>
+          <p id="account-error" class="account-error hidden"></p>
+          <button id="account-submit" type="submit" class="btn btn-primary account-submit-btn" data-i18n="account.signIn">Iniciar sesión</button>
+        </form>
+        <div class="account-divider"><span data-i18n="account.orContinue">o continuá sin cuenta</span></div>
+        <button id="account-guest-continue" class="account-guest-btn" type="button">
+          <span data-i18n="account.continueGuest">Seguir como invitado</span>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+        </button>
+      </div>
+
+      <div id="account-in" class="account-state hidden">
+        <div class="account-avatar" aria-hidden="true">◉</div>
+        <p class="account-welcome-title" id="account-welcome">—</p>
+        <p class="account-welcome-sub" data-i18n="account.loggedInSub">Tu progreso está a salvo, en cualquier dispositivo.</p>
+        <div class="account-diamond-row"><span aria-hidden="true">💎</span><strong id="account-diamonds">0</strong><span data-i18n="hud.diamondsAria">Tus diamantes</span></div>
+        <button id="account-signout" class="btn btn-ghost account-submit-btn" data-i18n="account.signOut">Cerrar sesión</button>
+      </div>
+
+      <div id="account-unavailable" class="account-state hidden">
+        <p class="account-note" data-i18n="account.guestNote">Modo invitado: tus diamantes se guardan en este navegador.</p>
+        <p class="account-note muted" data-i18n="account.unavailable">Las cuentas no están configuradas en este servidor todavía.</p>
+        <div class="account-diamond-row"><span aria-hidden="true">💎</span><strong id="account-diamonds-guest">0</strong><span data-i18n="hud.diamondsAria">Tus diamantes</span></div>
+        <button id="account-unavailable-continue" class="account-guest-btn" type="button">
+          <span data-i18n="account.backToWorld">Volver al mundo</span>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+        </button>
+      </div>
+    </div>
   </div>
-</aside>
+</section>
 
 <!-- Celebración de logros (celebrateMilestone) -->
 <div id="celebration" class="celebration hidden" aria-hidden="true">

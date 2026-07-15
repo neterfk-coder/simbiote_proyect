@@ -478,10 +478,37 @@ const App = (() => {
   });
   $("#btn-shop").addEventListener("click", () => $("#panel-shop").classList.toggle("is-open"));
 
-  /* --- Cuenta / login --- */
+  /* --- Cuenta: pantalla completa de login --- */
   let authMode = "signin";
+  let accountHeroP5 = null;
+
+  function ensureAccountHeroCanvas() {
+    if (accountHeroP5) return;
+    const container = $("#account-hero-canvas");
+    accountHeroP5 = new p5(p => {
+      let critters = [];
+      const fakeWorld = { creatures: critters, pointer: null, activeEvent: null, nearest: () => null };
+      p.setup = () => {
+        const rect = container.getBoundingClientRect();
+        p.createCanvas(Math.max(200, rect.width), Math.max(200, rect.height)).parent(container);
+        p.colorMode(p.HSB, 360, 100, 100, 1);
+        critters = Array.from({ length: 3 }, () => new Creature(DNA.random(), {
+          x: Math.random() * p.width, y: Math.random() * p.height, mine: false
+        }));
+        fakeWorld.creatures = critters;
+      };
+      p.draw = () => {
+        p.clear();
+        for (const c of critters) { c.update(p, fakeWorld, 0.016); c.draw(p); }
+      };
+    });
+  }
+  function updateAccountStats() {
+    $("#account-stat-alive").textContent = World.creatures.filter(c => !c.dead).length;
+    $("#account-stat-online").textContent = $("#presence").textContent.match(/\d+/)?.[0] || "1";
+  }
   function renderAccountPanel() {
-    $$("#panel-account .account-state").forEach(el => el.classList.add("hidden"));
+    $$("#screen-account .account-state").forEach(el => el.classList.add("hidden"));
     if (!Auth.available) {
       $("#account-unavailable").classList.remove("hidden");
     } else if (Auth.user && !Auth.isAnonymous) {
@@ -494,18 +521,34 @@ const App = (() => {
   }
   function setAuthMode(mode) {
     authMode = mode;
+    $$(".account-tab").forEach(b => b.classList.toggle("is-active", b.dataset.mode === mode));
     $("#account-name-field").classList.toggle("hidden", mode !== "signup");
     $("#account-submit").textContent = I18n.t(mode === "signup" ? "account.signUp" : "account.signIn");
-    $("#account-toggle").textContent = I18n.t(mode === "signup" ? "account.toggleToSignIn" : "account.toggleToSignUp");
     $("#account-error").classList.add("hidden");
   }
-  $("#btn-account").addEventListener("click", () => { renderAccountPanel(); $("#panel-account").classList.toggle("is-open"); });
-  $("#account-toggle").addEventListener("click", () => setAuthMode(authMode === "signup" ? "signin" : "signup"));
+  function openAccountScreen() {
+    renderAccountPanel();
+    updateAccountStats();
+    $("#screen-account").classList.add("is-active");
+    ensureAccountHeroCanvas();
+    accountHeroP5?.loop();
+  }
+  function closeAccountScreen() {
+    $("#screen-account").classList.remove("is-active");
+    accountHeroP5?.noLoop();
+  }
+
+  $("#btn-account").addEventListener("click", openAccountScreen);
+  $("#account-back").addEventListener("click", closeAccountScreen);
+  $("#account-guest-continue").addEventListener("click", closeAccountScreen);
+  $("#account-unavailable-continue").addEventListener("click", closeAccountScreen);
+  $$(".account-tab").forEach(b => b.addEventListener("click", () => setAuthMode(b.dataset.mode)));
   $("#account-form").addEventListener("submit", async e => {
     e.preventDefault();
     const email = $("#account-email").value.trim();
     const password = $("#account-password").value;
     const errEl = $("#account-error");
+    errEl.classList.add("hidden");
     try {
       if (authMode === "signup") await Auth.signUp(email, password, $("#account-name").value.trim());
       else await Auth.signIn(email, password);
@@ -619,6 +662,7 @@ const App = (() => {
     if (e.key !== "Escape") return;
     $$(".panel").forEach(p => p.classList.remove("is-open"));
     if (Leaderboard.isOpen) Leaderboard.close();
+    if ($("#screen-account").classList.contains("is-active")) closeAccountScreen();
   });
 
   // primera línea de la Crónica
