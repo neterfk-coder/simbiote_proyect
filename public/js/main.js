@@ -177,7 +177,7 @@ const App = (() => {
   function enterWorld() {
     show(null);
     $("#hud-top").classList.remove("hidden");
-    $("#lang-switch-floating").classList.add("hidden");
+    $("#floating-topright").classList.add("hidden");
     $("#toy-tray").classList.remove("hidden");
     if (!hasEnteredWorld) { hasEnteredWorld = true; toast(I18n.t("hint.camera")); }
   }
@@ -539,6 +539,7 @@ const App = (() => {
   }
 
   $("#btn-account").addEventListener("click", openAccountScreen);
+  $("#btn-account-floating").addEventListener("click", openAccountScreen);
   $("#account-back").addEventListener("click", closeAccountScreen);
   $("#account-guest-continue").addEventListener("click", closeAccountScreen);
   $("#account-unavailable-continue").addEventListener("click", closeAccountScreen);
