@@ -14,8 +14,8 @@ window.SIMBIONTE_CONFIG = {
   /* Supabase directo desde el navegador (opcional, para leer el
      archivo fósil / genealogías públicas). Usa SOLO la clave "anon".
      Project Settings → API → anon public key                       */
-  SUPABASE_URL: "",
-  SUPABASE_ANON_KEY: "",
+  SUPABASE_URL: "https://uinimvaunpaduoqidhny.supabase.co",
+  SUPABASE_ANON_KEY: "sb_publishable_2KjSUftRdHOAqLxjcPaudQ_24Z7Tdkn",
 
   /* Nombre con el que firmas a tus criaturas si no escribes uno en
      el ritual (se puede cambiar desde la interfaz). Déjalo vacío

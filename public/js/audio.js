@@ -112,5 +112,13 @@ const AudioRitual = (() => {
     ["C4", "E4", "G4", "C5"].forEach((n, i) => setTimeout(() => birthSynth.triggerAttackRelease(n, "8n"), i * 90));
   }
 
-  return { listen, wake, sing, birthChord, celebrate };
+  /* Pequeño sonido al lanzar un juguete (throwToy) */
+  const TOY_NOTES = { bubbles: ["C5", "E5"], shower: ["A4", "C5", "E5"], feather: ["G5"], star: ["E5", "G5", "C6"] };
+  function playToy(type) {
+    if (!toneReady || !window.SIMBIONTE_SOUND) return;
+    const notes = TOY_NOTES[type] || ["C5"];
+    notes.forEach((n, i) => setTimeout(() => synth.triggerAttackRelease(n, "16n"), i * 60));
+  }
+
+  return { listen, wake, sing, birthChord, celebrate, playToy };
 })();

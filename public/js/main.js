@@ -18,7 +18,23 @@ const App = (() => {
   let lastFrame = performance.now();
   let draggingFood = null;
   let draggingCreature = false;
+  let draggingToy = null;
   const milestones = new Set();
+  const PORTRAIT_KEY = "simbionte_portrait"; // retrato local, se aplica a cada criatura nueva (como los cosméticos)
+
+  /* ══════════ 0. Cámara: zoom y desplazamiento libres ══════════ */
+  const CAMERA_MIN_ZOOM = 0.5, CAMERA_MAX_ZOOM = 2.4;
+  const camera = { x: 0, y: 0, zoom: 1 };
+  function screenToWorld(sx, sy) {
+    return { x: (sx - innerWidth / 2) / camera.zoom + camera.x, y: (sy - innerHeight / 2) / camera.zoom + camera.y };
+  }
+  function clampCamera() { camera.zoom = Math.min(CAMERA_MAX_ZOOM, Math.max(CAMERA_MIN_ZOOM, camera.zoom)); }
+  function isOnWorldScreen() {
+    return !$("#screen-intro").classList.contains("is-active") &&
+           !$("#screen-ritual").classList.contains("is-active");
+  }
+  let panFrom = null;   // { sx, sy, camX, camY } — para distinguir un tap de un arrastre
+  let isPanning = false;
 
   /* ══════════ 1. El mundo (sketch p5) ══════════ */
   new p5(p => {
@@ -34,50 +50,111 @@ const App = (() => {
       const dt = Math.min(0.05, (now - lastFrame) / 1000);
       lastFrame = now;
       drawAbyss(p);
-      World.setPointer({ x: p.mouseX, y: p.mouseY, held: p.mouseIsPressed && !draggingFood && !draggingCreature });
+      p.push();
+      p.translate(innerWidth / 2, innerHeight / 2);
+      p.scale(camera.zoom);
+      p.translate(-camera.x, -camera.y);
+      const w = screenToWorld(p.mouseX, p.mouseY);
+      World.setPointer({ x: w.x, y: w.y, held: p.mouseIsPressed && !draggingFood && !draggingCreature && !draggingToy });
       World.updateAndDraw(p, dt);
+      p.pop();
+      if (draggingToy) drawToyCursor(p, draggingToy);
       checkSurvivalMilestone();
     };
     p.mousePressed = e => {
       // p5 dispara mousePressed para cualquier clic en la página, no solo
       // en el lienzo: hay que ignorar los clics sobre botones/paneles del HUD.
       if (e && e.target && e.target.tagName !== "CANVAS") return;
-      if ($("#screen-intro").classList.contains("is-active") ||
-          $("#screen-ritual").classList.contains("is-active")) return;
+      if (!isOnWorldScreen()) return;
+      const w = screenToWorld(p.mouseX, p.mouseY);
 
-      const f = World.foodAt(p.mouseX, p.mouseY);
-      if (f) { draggingFood = f; World.dragFood(f, p.mouseX, p.mouseY); return; }
+      const f = World.foodAt(w.x, w.y);
+      if (f) { draggingFood = f; World.dragFood(f, w.x, w.y); return; }
 
-      if (myCreature && !myCreature.dead && Math.hypot(myCreature.x - p.mouseX, myCreature.y - p.mouseY) < myCreature.r + 18) {
+      if (myCreature && !myCreature.dead && Math.hypot(myCreature.x - w.x, myCreature.y - w.y) < myCreature.r + 18) {
         draggingCreature = true;
         myCreature.dragging = true;
         return;
       }
-      inspectAt(p.mouseX, p.mouseY);
+      // ni comida ni mi criatura: puede ser un toque (inspeccionar) o el inicio de un arrastre de cámara
+      panFrom = { sx: p.mouseX, sy: p.mouseY, camX: camera.x, camY: camera.y };
+      isPanning = false;
     };
     p.mouseDragged = () => {
-      if (draggingFood) World.dragFood(draggingFood, p.mouseX, p.mouseY);
+      if (draggingFood) { const w = screenToWorld(p.mouseX, p.mouseY); World.dragFood(draggingFood, w.x, w.y); return; }
       if (draggingCreature && myCreature) {
-        myCreature.x = p.mouseX; myCreature.y = p.mouseY;
+        const w = screenToWorld(p.mouseX, p.mouseY);
+        myCreature.x = w.x; myCreature.y = w.y;
+        return;
+      }
+      if (panFrom) {
+        const dx = p.mouseX - panFrom.sx, dy = p.mouseY - panFrom.sy;
+        if (!isPanning && Math.hypot(dx, dy) > 6) isPanning = true;
+        if (isPanning) { camera.x = panFrom.camX - dx / camera.zoom; camera.y = panFrom.camY - dy / camera.zoom; }
       }
     };
     p.mouseReleased = () => {
       if (draggingFood) {
-        const fed = World.releaseFood(draggingFood, p.mouseX, p.mouseY);
+        const w = screenToWorld(p.mouseX, p.mouseY);
+        const fed = World.releaseFood(draggingFood, w.x, w.y);
         if (fed) {
           toast(I18n.t("toast.fed", { name: fed.name }));
           if (fed.feedCount >= 5) checkMilestone("fed5", fed);
         }
         draggingFood = null;
+        return;
       }
       if (draggingCreature && myCreature) {
         myCreature.dragging = false;
         draggingCreature = false;
-        const t = Courtship.endDrag(myCreature, p.mouseX, p.mouseY);
+        const w = screenToWorld(p.mouseX, p.mouseY);
+        const t = Courtship.endDrag(myCreature, w.x, w.y);
         if (t) openCourtshipProposal(myCreature, t);
+        return;
+      }
+      if (panFrom) {
+        if (!isPanning) { const w = screenToWorld(panFrom.sx, panFrom.sy); inspectAt(w.x, w.y); }
+        panFrom = null; isPanning = false;
       }
     };
+    p.mouseWheel = e => {
+      if (!isOnWorldScreen()) return;
+      const before = screenToWorld(p.mouseX, p.mouseY);
+      camera.zoom *= e.delta > 0 ? 0.9 : 1.1;
+      clampCamera();
+      const after = screenToWorld(p.mouseX, p.mouseY);
+      camera.x += before.x - after.x;
+      camera.y += before.y - after.y;
+      return false;
+    };
+    p.doubleClicked = e => {
+      if (e && e.target && e.target.tagName !== "CANVAS") return;
+      if (!isOnWorldScreen()) return;
+      camera.x = 0; camera.y = 0; camera.zoom = 1;
+    };
   });
+
+  function drawToyCursor(p, type) {
+    const icons = { bubbles: "🫧", shower: "🚿", feather: "🪶", star: "✨" };
+    p.push();
+    p.textAlign(p.CENTER, p.CENTER);
+    p.textSize(28);
+    p.text(icons[type] || "•", p.mouseX, p.mouseY);
+    p.pop();
+  }
+
+  /* ══════════ 1b. Juguetes: lanzarlos a cualquier criatura (throwToy) ══════════ */
+  function throwToyAt(type, x, y) {
+    const target = World.nearestTo(x, y, 90);
+    if (!target) { toast(I18n.t("toast.toy.miss"), "coral"); return; }
+    target.react(type);
+    AudioRitual.playToy(type);
+    if (type === "bubbles") World.burstAt(x, y, 190, 22);
+    else if (type === "shower") World.burstAt(x, y, 200, 26);
+    else if (type === "feather") World.burstAt(x, y, 48, 14);
+    else if (type === "star") World.heartsAt(x, y, target.hue1);
+    toast(I18n.t("toast.toy." + type, { name: target.name }));
+  }
 
   function drawAbyss(p) {
     // gradiente vertical abisal + viñeta, dibujado barato
@@ -96,10 +173,13 @@ const App = (() => {
   function show(id) {
     $$(".screen").forEach(s => s.classList.toggle("is-active", s.id === id));
   }
+  let hasEnteredWorld = false;
   function enterWorld() {
     show(null);
     $("#hud-top").classList.remove("hidden");
     $("#lang-switch-floating").classList.add("hidden");
+    $("#toy-tray").classList.remove("hidden");
+    if (!hasEnteredWorld) { hasEnteredWorld = true; toast(I18n.t("hint.camera")); }
   }
 
   /* ══════════ 3. El Ritual ══════════ */
@@ -224,7 +304,8 @@ const App = (() => {
       x: innerWidth / 2, y: innerHeight / 2,
       mine: true,
       creator: window.SIMBIONTE_CONFIG?.DEFAULT_CREATOR || I18n.t("defaultCreatorName"),
-      cosmetics: Wallet.equippedItems()
+      cosmetics: Wallet.equippedItems(),
+      portrait: localStorage.getItem(PORTRAIT_KEY)
     });
     $("#born-name").value = myCreature.name;
     $("#born-epithet").textContent = I18n.t("ritual.birth.epithetPrefix", { epithet: DNA.epithet(genome) });
@@ -403,11 +484,12 @@ const App = (() => {
     $$("#panel-account .account-state").forEach(el => el.classList.add("hidden"));
     if (!Auth.available) {
       $("#account-unavailable").classList.remove("hidden");
-    } else if (Auth.user) {
+    } else if (Auth.user && !Auth.isAnonymous) {
       $("#account-in").classList.remove("hidden");
       $("#account-welcome").textContent = I18n.t("account.loggedInAs", { name: Auth.displayName });
     } else {
       $("#account-guest").classList.remove("hidden");
+      $("#account-guest-note").textContent = I18n.t(Auth.user ? "account.anonNote" : "account.guestNote");
     }
   }
   function setAuthMode(mode) {
@@ -443,6 +525,59 @@ const App = (() => {
   $("#lb-close").addEventListener("click", () => Leaderboard.close());
   $$(".lb-tab").forEach(b => b.addEventListener("click", () => Leaderboard.setMetric(b.dataset.metric)));
 
+  /* ══════════ 5d. Bandeja de juguetes (throwToy) ══════════
+     El arrastre empieza en un botón del DOM y termina sobre el
+     lienzo p5: en vez de depender de los callbacks internos de
+     p5 (poco fiables cuando el gesto cruza esa frontera), lo
+     manejamos con nuestros propios listeners en window. */
+  $$(".toy-btn").forEach(btn => {
+    btn.addEventListener("pointerdown", e => {
+      e.preventDefault();
+      draggingToy = btn.dataset.toy;
+      const onUp = ev => {
+        window.removeEventListener("pointerup", onUp);
+        if (!draggingToy) return;
+        const w = screenToWorld(ev.clientX, ev.clientY);
+        throwToyAt(draggingToy, w.x, w.y);
+        draggingToy = null;
+      };
+      window.addEventListener("pointerup", onUp);
+    });
+  });
+
+  /* ══════════ 5e. Foto personalizada (retrato) ══════════ */
+  $("#btn-photo").addEventListener("click", () => {
+    if (!myCreature || myCreature.dead) { toast(I18n.t("shop.needCreature"), "coral"); return; }
+    $("#photo-input").click();
+  });
+  $("#photo-input").addEventListener("change", async e => {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (!file || !myCreature) return;
+    try {
+      const dataUrl = await cropToCircleSquare(file, 160);
+      myCreature.setPortrait(dataUrl);
+      localStorage.setItem(PORTRAIT_KEY, dataUrl);
+    } catch {
+      toast(I18n.t("portrait.error"), "coral");
+    }
+  });
+  function cropToCircleSquare(file, size) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        const side = Math.min(img.width, img.height);
+        ctx.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, size, size);
+        resolve(canvas.toDataURL("image/jpeg", 0.85));
+      };
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
   /* ══════════ 6. Toasts ══════════ */
   function toast(msg, tone = "") {
     const box = $("#toasts");
@@ -476,6 +611,7 @@ const App = (() => {
   $("#btn-cert").addEventListener("click", () => myCreature && Certificate.download(myCreature, p5world));
   $("#btn-find").addEventListener("click", () => {
     if (!myCreature || myCreature.dead) { toast(I18n.t("toast.creatureIsFossil"), "coral"); return; }
+    camera.x = myCreature.x; camera.y = myCreature.y;
     World.burstAt(myCreature.x, myCreature.y, myCreature.hue1, 30);
     toast(I18n.t("toast.creatureShines", { name: myCreature.name }));
   });

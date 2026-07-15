@@ -38,6 +38,9 @@ class Creature {
     this.childCount = 0;
     this.growthBonus = 1;
     this.feedPulse = 0;
+    this.reaction = null;
+    this.portrait = opts.portrait || null;
+    this.portraitImg = null;
 
     // rasgos derivados (se calculan una vez)
     this.baseR = 16 + genome[G.SIZE] * 30;
@@ -50,6 +53,17 @@ class Creature {
   }
 
   get lifeRatio() { return 1 - this.age / this.maxAge; }
+
+  /* Reacción a un juguete lanzado (bubbles/shower/feather/star) */
+  react(type) { this.reaction = { type, elapsed: 0 }; }
+
+  /* Retrato personalizado (foto subida por el creador) */
+  setPortrait(dataUrl) { this.portrait = dataUrl; this.portraitImg = null; this._portraitLoading = false; }
+  loadPortrait(p) {
+    if (this._portraitLoading || !this.portrait) return;
+    this._portraitLoading = true;
+    p.loadImage(this.portrait, img => { this.portraitImg = img; this._portraitLoading = false; }, () => { this._portraitLoading = false; });
+  }
 
   /* Alimentar: crece un poco (con tope) y extiende su vida (feedCreature) */
   feed() {
@@ -69,6 +83,11 @@ class Creature {
     if (this.age > this.maxAge) { this.dead = true; return; }
     this.mateCooldown = Math.max(0, this.mateCooldown - dt);
     if (this.feedPulse > 0) this.feedPulse = Math.max(0, this.feedPulse - dt * 1.1);
+    const REACTION_DURATION = { bubbles: 1.8, shower: 2.2, feather: 1.4, star: 1.6 };
+    if (this.reaction) {
+      this.reaction.elapsed += dt;
+      if (this.reaction.elapsed > REACTION_DURATION[this.reaction.type]) this.reaction = null;
+    }
 
     if (this.dragging) {
       // la criatura está siendo arrastrada por su creador (proposeCourtship)
@@ -119,6 +138,14 @@ class Creature {
           ay += (world.pointer.y - this.y) / d * g[G.CURIOUS] * 0.8;
         }
       }
+
+      // reacción a un juguete: cada uno se mueve distinto (throwToy)
+      if (this.reaction) {
+        const rt = this.reaction.elapsed;
+        if (this.reaction.type === "feather") { ax += Math.sin(rt * 40) * 3; ay += Math.cos(rt * 37) * 3; }
+        else if (this.reaction.type === "star") { const spin = rt * 9; ax += Math.cos(spin) * 1.6; ay += Math.sin(spin) * 1.6; }
+        else if (this.reaction.type === "bubbles") { ay -= 0.7; }
+      }
     }
 
     // evento del ecosistema: corriente que arrastra a todos hacia el centro
@@ -162,6 +189,8 @@ class Creature {
     const r = this.r * pulse * (0.6 + 0.4 * Math.min(1, this.age / 6)); // crece al nacer
     const alive = this.lifeRatio;
 
+    if (this.portrait && !this.portraitImg) this.loadPortrait(p);
+
     p.push();
     p.translate(this.x, this.y);
 
@@ -171,6 +200,30 @@ class Creature {
       p.stroke(48, 80, 95, this.feedPulse * 0.7);
       p.strokeWeight(2 + this.feedPulse * 2);
       p.circle(0, 0, r * (2.1 + (1 - this.feedPulse) * 1.4));
+    }
+
+    // reacción a un juguete (throwToy): burbujas / ducha
+    if (this.reaction) {
+      const rt = this.reaction.elapsed;
+      p.noStroke();
+      if (this.reaction.type === "bubbles") {
+        for (let i = 0; i < 6; i++) {
+          const rise = ((rt * 0.6 + i / 6) % 1);
+          const bx = Math.sin(i * 2.1 + t * 2) * r * 0.9;
+          const by = -rise * r * 2.6;
+          p.fill(190, 40, 100, (1 - rise) * 0.6 * alive);
+          p.circle(bx, by, 4 + (i % 3) * 2);
+        }
+      } else if (this.reaction.type === "shower") {
+        for (let i = 0; i < 8; i++) {
+          const drop = ((rt * 2.2 + i / 8) % 1);
+          const dx = (i / 8 - 0.5) * r * 1.6;
+          p.fill(195, 60, 100, (1 - drop) * 0.7 * alive);
+          p.circle(dx, -r * 1.6 + drop * r * 2.4, 2.4);
+        }
+        p.noFill(); p.stroke(195, 40, 100, (1 - rt / 2.2) * 0.5 * alive); p.strokeWeight(2);
+        p.circle(0, 0, r * (2 + Math.sin(rt * 10) * 0.06));
+      }
     }
 
     // estela
@@ -267,6 +320,27 @@ class Creature {
       p.textSize(Math.max(10, r * 0.34));
       p.fill(0, 0, 100, 0.5 * alive + 0.1);
       p.text(this.name, 0, -r - 10);
+    }
+
+    // retrato personalizado: medallón circular junto al cuerpo
+    if (this.portraitImg && alive > 0) {
+      const pr = r * 0.5, px = r * 0.86, py = r * 0.7;
+      p.push();
+      p.translate(px, py);
+      p.drawingContext.save();
+      p.drawingContext.beginPath();
+      p.drawingContext.arc(0, 0, pr, 0, Math.PI * 2);
+      p.drawingContext.clip();
+      p.imageMode(p.CENTER);
+      p.tint(0, 0, 100, alive);
+      p.image(this.portraitImg, 0, 0, pr * 2, pr * 2);
+      p.noTint();
+      p.drawingContext.restore();
+      p.noFill();
+      p.stroke(45, 60, 100, 0.85 * alive);
+      p.strokeWeight(2);
+      p.circle(0, 0, pr * 2);
+      p.pop();
     }
 
     // ojos

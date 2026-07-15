@@ -52,6 +52,17 @@ const World = (() => {
     return best;
   }
 
+  /* Criatura viva más cercana a un punto del mundo (throwToy, cortejo por clic) */
+  function nearestTo(x, y, maxDist = 90) {
+    let best = null, bd = maxDist;
+    for (const c of creatures) {
+      if (c.dead) continue;
+      const d = Math.hypot(c.x - x, c.y - y) - c.r * 0.4;
+      if (d < bd) { bd = d; best = c; }
+    }
+    return best;
+  }
+
   /* ---------- Reproducción ---------- */
   function tryReproduce(p) {
     if (creatures.length >= MAX_POP() || creatures.length < 2) return;
@@ -244,7 +255,7 @@ const World = (() => {
   }
 
   const api = {
-    creatures, fossils, food, add, kill, nearest, on,
+    creatures, fossils, food, add, kill, nearest, nearestTo, on,
     updateAndDraw, initPlankton, burstAt, heartsAt,
     foodAt, dragFood, releaseFood,
     announceCourtship: e => emit("courtship", e),

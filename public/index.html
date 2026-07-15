@@ -206,7 +206,7 @@
   </div>
 
   <div id="account-guest" class="account-state hidden">
-    <p class="panel-sub" data-i18n="account.guestNote">Modo invitado: tus diamantes se guardan en este navegador.</p>
+    <p class="panel-sub" id="account-guest-note">—</p>
     <form id="account-form" class="account-form">
       <label><span data-i18n="account.email">Correo</span><input id="account-email" type="email" autocomplete="email" required></label>
       <label id="account-name-field" class="hidden"><span data-i18n="account.displayName">Nombre para mostrar</span><input id="account-name" type="text" maxlength="24" autocomplete="nickname"></label>
@@ -235,18 +235,32 @@
   <p id="celebration-text" class="celebration-text">—</p>
 </div>
 
-<!-- Tarjeta de mi criatura -->
-<aside id="my-card" class="glass my-card hidden" aria-live="polite">
-  <div class="my-card-head">
-    <p class="eyebrow" data-i18n="mycard.eyebrow">Tu criatura</p>
-    <h3 id="my-name">—</h3>
-    <p id="my-epithet" class="muted">—</p>
-  </div>
-  <div class="my-card-actions">
-    <button id="btn-find" class="btn btn-ghost btn-small" data-i18n="mycard.find">Encontrarla</button>
-    <button id="btn-cert" class="btn btn-primary btn-small" data-i18n="mycard.cert">Certificado ↓</button>
-  </div>
-</aside>
+<!-- Esquina inferior izquierda: juguetes + tarjeta de mi criatura -->
+<div class="bottom-left-stack">
+  <aside id="toy-tray" class="glass toy-tray hidden" aria-label="Juguetes">
+    <p class="eyebrow" data-i18n="toys.title">Juguetes</p>
+    <div class="toy-row">
+      <button type="button" class="toy-btn" data-toy="bubbles" data-i18n-aria="toy.bubbles" aria-label="Burbujas" title="Burbujas">🫧</button>
+      <button type="button" class="toy-btn" data-toy="shower" data-i18n-aria="toy.shower" aria-label="Ducha" title="Ducha">🚿</button>
+      <button type="button" class="toy-btn" data-toy="feather" data-i18n-aria="toy.feather" aria-label="Pluma" title="Pluma">🪶</button>
+      <button type="button" class="toy-btn" data-toy="star" data-i18n-aria="toy.star" aria-label="Chispa" title="Chispa">✨</button>
+    </div>
+  </aside>
+
+  <aside id="my-card" class="glass my-card hidden" aria-live="polite">
+    <div class="my-card-head">
+      <p class="eyebrow" data-i18n="mycard.eyebrow">Tu criatura</p>
+      <h3 id="my-name">—</h3>
+      <p id="my-epithet" class="muted">—</p>
+    </div>
+    <div class="my-card-actions">
+      <button id="btn-find" class="btn btn-ghost btn-small" data-i18n="mycard.find">Encontrarla</button>
+      <button id="btn-photo" class="btn btn-ghost btn-small" data-i18n-aria="portrait.uploadAria" aria-label="Subir una foto para tu criatura" data-i18n="mycard.photo">Foto</button>
+      <button id="btn-cert" class="btn btn-primary btn-small" data-i18n="mycard.cert">Certificado ↓</button>
+    </div>
+    <input id="photo-input" type="file" accept="image/*" class="hidden">
+  </aside>
+</div>
 
 <!-- Panel: la Crónica -->
 <aside id="panel-chronicle" class="panel glass" aria-label="La Crónica del mundo">

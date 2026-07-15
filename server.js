@@ -45,6 +45,7 @@ async function loadFromSupabase() {
     roster = data.map(r => ({
       id: r.id, name: r.name, genome: r.genome,
       parents: r.parents || null, creator: r.creator || 'anónimo',
+      user_id: r.user_id || null,
       bornAt: new Date(r.created_at).getTime()
     })).reverse();
     console.log(`[SIMBIONTE] ${roster.length} criaturas recuperadas de Supabase.`);
@@ -56,7 +57,7 @@ async function persistCreature(c) {
   if (!supabase) return;
   await supabase.from('creatures').insert({
     id: c.id, name: c.name, genome: c.genome,
-    parents: c.parents, creator: c.creator
+    parents: c.parents, creator: c.creator, user_id: c.user_id || null
   }).then(({ error }) => { if (error) console.error('[Supabase]', error.message); });
 }
 

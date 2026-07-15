@@ -183,6 +183,7 @@ const I18n = (() => {
       "account.title": "Tu cuenta",
       "account.closeAria": "Cerrar cuenta",
       "account.guestNote": "Modo invitado: tus diamantes se guardan en este navegador.",
+      "account.anonNote": "Ya estás jugando como invitado registrado: tus diamantes y tu criatura se están guardando. Poné un correo y contraseña para poder entrar desde otro dispositivo.",
       "account.email": "Correo",
       "account.password": "Contraseña",
       "account.displayName": "Nombre para mostrar",
@@ -205,7 +206,21 @@ const I18n = (() => {
       "leaderboard.creature": "Criatura",
       "leaderboard.creator": "Creador",
       "leaderboard.value": "Valor",
-      "leaderboard.empty": "Aún no hay criaturas en el mundo."
+      "leaderboard.empty": "Aún no hay criaturas en el mundo.",
+
+      "hint.camera": "Arrastra para moverte por el mundo · rueda del mouse para hacer zoom · doble clic para centrar",
+
+      "toys.title": "Juguetes",
+      "toy.bubbles": "Burbujas", "toy.shower": "Ducha", "toy.feather": "Pluma", "toy.star": "Chispa",
+      "toast.toy.bubbles": "¡A {name} le encantaron las burbujas!",
+      "toast.toy.shower": "{name} quedó reluciente después de su ducha.",
+      "toast.toy.feather": "¡Le hiciste cosquillas a {name}!",
+      "toast.toy.star": "{name} gira feliz de emoción.",
+      "toast.toy.miss": "No había ninguna criatura cerca para recibirlo.",
+
+      "mycard.photo": "Foto",
+      "portrait.uploadAria": "Subir una foto para tu criatura",
+      "portrait.error": "No se pudo cargar esa imagen. Probá con otra."
     },
     en: {
       "meta.title": "SIMBIONTE — the living art ecosystem",
@@ -380,6 +395,7 @@ const I18n = (() => {
       "account.title": "Your account",
       "account.closeAria": "Close account",
       "account.guestNote": "Guest mode: your diamonds are saved in this browser.",
+      "account.anonNote": "You're already playing as a registered guest: your diamonds and creature are being saved. Add an email and password to sign in from another device.",
       "account.email": "Email",
       "account.password": "Password",
       "account.displayName": "Display name",
@@ -402,7 +418,21 @@ const I18n = (() => {
       "leaderboard.creature": "Creature",
       "leaderboard.creator": "Creator",
       "leaderboard.value": "Value",
-      "leaderboard.empty": "No creatures in the world yet."
+      "leaderboard.empty": "No creatures in the world yet.",
+
+      "hint.camera": "Drag to move around the world · scroll to zoom · double-click to recenter",
+
+      "toys.title": "Toys",
+      "toy.bubbles": "Bubbles", "toy.shower": "Shower", "toy.feather": "Feather", "toy.star": "Sparkle",
+      "toast.toy.bubbles": "{name} loved the bubbles!",
+      "toast.toy.shower": "{name} came out sparkling clean.",
+      "toast.toy.feather": "You tickled {name}!",
+      "toast.toy.star": "{name} spins with joy.",
+      "toast.toy.miss": "There was no creature nearby to receive it.",
+
+      "mycard.photo": "Photo",
+      "portrait.uploadAria": "Upload a photo for your creature",
+      "portrait.error": "Couldn't load that image. Try another one."
     }
   };
 
