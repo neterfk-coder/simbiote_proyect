@@ -101,6 +101,7 @@ const I18n = (() => {
       "inspect.closeAria": "Cerrar ficha",
       "inspect.childOf": "hija de {a} y {b}",
       "inspect.bornOf": "nacida de {epithet} · creador: {creator}",
+      "inspect.health": "Golpes recibidos: {hits} / {max}",
 
       "gene.glow": "Luz", "gene.speed": "Velocidad", "gene.social": "Sociabilidad",
       "gene.curious": "Curiosidad", "gene.pitch": "Canto", "gene.pulse": "Pulso",
@@ -113,6 +114,7 @@ const I18n = (() => {
       "toast.soundOff": "El mundo vuelve al silencio.",
       "toast.creatureIsFossil": "Tu criatura ya es un fósil. Su historia sigue en la Crónica.",
       "toast.creatureShines": "{name} brilla para ti.",
+      "toast.creatureDiedFromHits": "{name} no resistió tantos golpes y se desvaneció.",
 
       "epithet.voiceHigh": "una voz aguda", "epithet.voiceLow": "una voz grave", "epithet.voiceCalm": "una voz serena",
       "epithet.shapeSpiky": "un trazo afilado", "epithet.shapeSpiral": "un trazo en espiral", "epithet.shapeWandering": "un trazo errante",
@@ -445,6 +447,7 @@ const I18n = (() => {
       "inspect.closeAria": "Close profile",
       "inspect.childOf": "child of {a} and {b}",
       "inspect.bornOf": "born of {epithet} · creator: {creator}",
+      "inspect.health": "Hits taken: {hits} / {max}",
 
       "gene.glow": "Glow", "gene.speed": "Speed", "gene.social": "Sociability",
       "gene.curious": "Curiosity", "gene.pitch": "Song", "gene.pulse": "Pulse",
@@ -457,6 +460,7 @@ const I18n = (() => {
       "toast.soundOff": "The world returns to silence.",
       "toast.creatureIsFossil": "Your creature is already a fossil. Its story lives on in the Chronicle.",
       "toast.creatureShines": "{name} shines for you.",
+      "toast.creatureDiedFromHits": "{name} couldn't take any more hits and faded away.",
 
       "epithet.voiceHigh": "a high voice", "epithet.voiceLow": "a low voice", "epithet.voiceCalm": "a calm voice",
       "epithet.shapeSpiky": "a jagged stroke", "epithet.shapeSpiral": "a spiral stroke", "epithet.shapeWandering": "a wandering stroke",

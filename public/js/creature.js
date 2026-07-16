@@ -5,6 +5,8 @@
    ============================================================ */
 "use strict";
 
+const CREATURE_MAX_HITS = 15;
+
 class Creature {
   constructor(genome, opts = {}) {
     const G = DNA.G;
@@ -40,6 +42,8 @@ class Creature {
     this.childCount = 0;
     this.growthBonus = 1;
     this.feedPulse = 0;
+    this.hits = 0;
+    this.hitFlash = 0;
     this.reaction = null;
     this.portrait = opts.portrait || null;
     this.portraitImg = null;
@@ -78,6 +82,16 @@ class Creature {
     this.r = this.baseR * this.growthBonus;
   }
 
+  /* Golpear: los fundadores son inmortales y no sufren daño; el resto
+     muere al golpe número CREATURE_MAX_HITS (hitCreature) */
+  hit() {
+    if (this.permanent || this.dead) return { damaged: false, lethal: false };
+    this.hits++;
+    this.hitFlash = 1;
+    if (this.hits >= CREATURE_MAX_HITS) { this.dead = true; return { damaged: true, lethal: true }; }
+    return { damaged: true, lethal: false };
+  }
+
   /* ---------- Comportamiento ---------- */
   update(p, world, dt) {
     const G = DNA.G, g = this.genome;
@@ -85,6 +99,7 @@ class Creature {
     if (this.age > this.maxAge) { this.dead = true; return; }
     this.mateCooldown = Math.max(0, this.mateCooldown - dt);
     if (this.feedPulse > 0) this.feedPulse = Math.max(0, this.feedPulse - dt * 1.1);
+    if (this.hitFlash > 0) this.hitFlash = Math.max(0, this.hitFlash - dt * 2.2);
     const REACTION_DURATION = { bubbles: 1.8, shower: 2.2, feather: 1.4, star: 1.6 };
     if (this.reaction) {
       this.reaction.elapsed += dt;
@@ -203,6 +218,27 @@ class Creature {
       p.stroke(48, 80, 95, this.feedPulse * 0.7);
       p.strokeWeight(2 + this.feedPulse * 2);
       p.circle(0, 0, r * (2.1 + (1 - this.feedPulse) * 1.4));
+    }
+
+    // pulso rojo al recibir un golpe (hitCreature)
+    if (this.hitFlash > 0) {
+      p.noFill();
+      p.stroke(0, 85, 95, this.hitFlash * 0.85);
+      p.strokeWeight(2 + this.hitFlash * 3);
+      p.circle(0, 0, r * (1.9 + (1 - this.hitFlash) * 1.1));
+    }
+    // grietas: aparecen a partir de la mitad de los golpes, más marcadas cerca de morir
+    if (this.hits > CREATURE_MAX_HITS / 2 && !this.permanent) {
+      const dmg = (this.hits - CREATURE_MAX_HITS / 2) / (CREATURE_MAX_HITS / 2);
+      p.stroke(0, 0, 6, 0.35 * dmg * alive);
+      p.strokeWeight(1.3);
+      const cracks = Math.min(5, Math.round(dmg * 5));
+      for (let i = 0; i < cracks; i++) {
+        const a = (i / cracks) * p.TWO_PI + this.seed;
+        const x1 = Math.cos(a) * r * 0.15, y1 = Math.sin(a) * r * 0.15;
+        const x2 = Math.cos(a + 0.4) * r * 0.75, y2 = Math.sin(a + 0.4) * r * 0.75;
+        p.line(x1, y1, x2, y2);
+      }
     }
 
     // reacción a un juguete (throwToy): burbujas / ducha

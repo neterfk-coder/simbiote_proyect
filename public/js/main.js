@@ -18,6 +18,7 @@ const App = (() => {
   let lastFrame = performance.now();
   let draggingFood = null;
   let draggingCreature = false;
+  let creatureDragFrom = null; // { sx, sy } — para distinguir un toque (golpe) de un arrastre real (cortejo)
   let draggingToy = null;
   const milestones = new Set();
   const PORTRAIT_KEY = "simbionte_portrait"; // retrato local, se aplica a cada criatura nueva (como los cosméticos)
@@ -73,6 +74,7 @@ const App = (() => {
       if (myCreature && !myCreature.dead && Math.hypot(myCreature.x - w.x, myCreature.y - w.y) < myCreature.r + 18) {
         draggingCreature = true;
         myCreature.dragging = true;
+        creatureDragFrom = { sx, sy };
         return;
       }
       // ni comida ni mi criatura: puede ser un toque (inspeccionar) o el inicio de un arrastre de cámara
@@ -107,8 +109,15 @@ const App = (() => {
         myCreature.dragging = false;
         draggingCreature = false;
         const w = screenToWorld(sx, sy);
-        const t = Courtship.endDrag(myCreature, w.x, w.y);
-        if (t) openCourtshipProposal(myCreature, t);
+        const moved = creatureDragFrom ? Math.hypot(sx - creatureDragFrom.sx, sy - creatureDragFrom.sy) : 999;
+        creatureDragFrom = null;
+        if (moved <= 6) {
+          // fue un toque, no un arrastre real: golpea/inspecciona como cualquier otra criatura
+          inspectAt(w.x, w.y);
+        } else {
+          const t = Courtship.endDrag(myCreature, w.x, w.y);
+          if (t) openCourtshipProposal(myCreature, t);
+        }
         return;
       }
       if (panFrom) {
@@ -571,6 +580,15 @@ const App = (() => {
     $("#inspect-origin").textContent = target.parents
       ? I18n.t("inspect.childOf", { a: target.parents[0].name, b: target.parents[1].name })
       : I18n.t("inspect.bornOf", { epithet: DNA.epithet(target.genome), creator: target.creator });
+    const healthBox = $("#inspect-health");
+    if (target.permanent || !target.hits) {
+      healthBox.classList.add("hidden");
+    } else {
+      healthBox.classList.remove("hidden");
+      const remaining = CREATURE_MAX_HITS - target.hits;
+      $("#inspect-health-label").textContent = I18n.t("inspect.health", { hits: target.hits, max: CREATURE_MAX_HITS });
+      $("#inspect-health-fill").style.width = (remaining / CREATURE_MAX_HITS * 100) + "%";
+    }
     const bars = $("#inspect-genes");
     bars.innerHTML = "";
     for (const [key, idx] of Object.entries(GENE_LABELS)) {
@@ -588,6 +606,17 @@ const App = (() => {
     }
     const panel = $("#panel-inspect");
     if (!target) { panel.classList.remove("is-open"); return; }
+
+    // tocar una criatura también la golpea (hitCreature): los fundadores son inmunes
+    const hitInfo = target.hit();
+    if (hitInfo.lethal) {
+      World.burstAt(target.x, target.y, 0, 44);
+      toast(I18n.t("toast.creatureDiedFromHits", { name: target.name }), "coral");
+      panel.classList.remove("is-open");
+      return;
+    }
+    if (hitInfo.damaged) World.burstAt(target.x, target.y, 0, 10);
+
     lastInspected = target;
     renderInspect(target);
     panel.classList.add("is-open");
