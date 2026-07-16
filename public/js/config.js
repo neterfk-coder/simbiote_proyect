@@ -24,6 +24,7 @@ window.SIMBIONTE_CONFIG = {
   DEFAULT_CREATOR: "",
 
   /* Población máxima visible del mundo (baja a 16 si tu equipo
-     va lento).                                                     */
-  MAX_POPULATION: 22
+     va lento). Incluye a los 8 fundadores permanentes, que nunca
+     se descartan aunque se llegue al límite.                       */
+  MAX_POPULATION: 30
 };

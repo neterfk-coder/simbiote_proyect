@@ -20,14 +20,16 @@ class Creature {
     this.parents = opts.parents || null;
     this.bornAt = opts.bornAt || Date.now();
     this.mine = !!opts.mine;
+    this.permanent = !!opts.permanent; // fundador: inmortal, nunca es desalojado del mundo
 
-    this.x = opts.x ?? Math.random() * innerWidth;
-    this.y = opts.y ?? Math.random() * innerHeight;
+    const wb = (typeof World !== "undefined" && World.bounds) ? World.bounds : { w: innerWidth, h: innerHeight };
+    this.x = opts.x ?? (Math.random() - 0.5) * wb.w;
+    this.y = opts.y ?? (Math.random() - 0.5) * wb.h;
     this.vx = 0; this.vy = 0;
     this.seed = Math.random() * 1000;
     this.age = 0;
-    this.maxAge = 60 + genome[G.LIFESPAN] * 240;   // 1–5 min de vida
-    if (this.cosmetics.includes("art_shell_lifespan")) this.maxAge *= 1.15;
+    this.maxAge = this.permanent ? Infinity : 60 + genome[G.LIFESPAN] * 240;   // 1–5 min de vida
+    if (!this.permanent && this.cosmetics.includes("art_shell_lifespan")) this.maxAge *= 1.15;
     this.energy = 1;
     this.mateCooldown = 20;
     this.trail = [];
@@ -148,9 +150,9 @@ class Creature {
       }
     }
 
-    // evento del ecosistema: corriente que arrastra a todos hacia el centro
+    // evento del ecosistema: corriente que arrastra a todos hacia el centro del mundo
     if (world.activeEvent?.type === "current") {
-      const cx = p.width / 2, cy = p.height / 2;
+      const cx = 0, cy = 0;
       const d = p.dist(this.x, this.y, cx, cy);
       if (d > 20) { ax += (cx - this.x) / d * 0.9; ay += (cy - this.y) / d * 0.9; }
     }
@@ -160,10 +162,11 @@ class Creature {
     this.vy = p.lerp(this.vy, ay * speed, 0.05 + g[G.WOBBLE] * 0.05);
     this.x += this.vx; this.y += this.vy;
 
-    // el mundo es un toroide: nada se pierde
-    const m = 60;
-    if (this.x < -m) this.x = p.width + m;  if (this.x > p.width + m) this.x = -m;
-    if (this.y < -m) this.y = p.height + m; if (this.y > p.height + m) this.y = -m;
+    // el mundo es un toroide: nada se pierde (coordenadas centradas en 0,0)
+    const wb = world.bounds || { w: p.width, h: p.height };
+    const hw = wb.w / 2 + 60, hh = wb.h / 2 + 60;
+    if (this.x < -hw) this.x = hw; if (this.x > hw) this.x = -hw;
+    if (this.y < -hh) this.y = hh; if (this.y > hh) this.y = -hh;
 
     // estela
     const maxTrail = 4 + Math.round(g[G.TRAIL] * 26);

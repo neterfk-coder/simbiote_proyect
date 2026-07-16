@@ -57,7 +57,8 @@ const App = (() => {
       p.translate(-camera.x, -camera.y);
       const w = screenToWorld(p.mouseX, p.mouseY);
       World.setPointer({ x: w.x, y: w.y, held: p.mouseIsPressed && !draggingFood && !draggingCreature && !draggingToy });
-      World.updateAndDraw(p, dt);
+      const tl = screenToWorld(0, 0), br = screenToWorld(innerWidth, innerHeight);
+      World.updateAndDraw(p, dt, { x0: tl.x, y0: tl.y, x1: br.x, y1: br.y });
       p.pop();
       if (draggingToy) drawToyCursor(p, draggingToy);
       checkSurvivalMilestone();
@@ -352,7 +353,7 @@ const App = (() => {
   /* --- Paso 5: nacimiento --- */
   function birth(genome) {
     myCreature = new Creature(genome, {
-      x: innerWidth / 2, y: innerHeight / 2,
+      x: (Math.random() - 0.5) * 300, y: (Math.random() - 0.5) * 300,
       mine: true,
       creator: window.SIMBIONTE_CONFIG?.DEFAULT_CREATOR || I18n.t("defaultCreatorName"),
       cosmetics: Wallet.equippedItems(),
@@ -452,7 +453,7 @@ const App = (() => {
     requestAnimationFrame(() => el.classList.add("show"));
     if (myCreature) {
       World.burstAt(myCreature.x, myCreature.y, myCreature.hue1, 90);
-      for (let i = 0; i < 5; i++) World.burstAt(Math.random() * innerWidth, Math.random() * innerHeight, myCreature.hue1, 18);
+      for (let i = 0; i < 5; i++) World.burstAt(myCreature.x + (Math.random() - 0.5) * 300, myCreature.y + (Math.random() - 0.5) * 300, myCreature.hue1, 18);
     }
     AudioRitual.celebrate();
     setTimeout(() => {
@@ -471,6 +472,30 @@ const App = (() => {
     if (myCreature && !myCreature.dead && myCreature.age > 60) checkMilestone("survive", myCreature);
   }
 
+  /* ══════════ 4d. Fundadores: 8 simbiontes permanentes que siempre están ahí ══════════
+     Cada visitante los añade igual (mismo nombre, genoma y posición) apenas
+     carga la página, sin esperar al servidor: son parte del santuario, no
+     de la partida de nadie, y nunca se descartan por límite de población. */
+  const FOUNDERS = [
+    { name: "Vhaal",    x: -1100, y: -600, genome: [0.75, 0.68, 0.95, 0.8, 0.3, 0.6, 0.85, 0.2, 0.1, 0.3, 0.7, 0.6, 0.9, 0.4, 0.3, 1, 0.15, 0.3, 0.2, 0.9] },
+    { name: "Solenne",  x: 900,   y: -750, genome: [0.12, 0.15, 0.6, 0.5, 0.1, 0.8, 0.9, 0.55, 0.15, 0.6, 0.6, 0.5, 0.4, 0.85, 0.7, 1, 0.7, 0.6, 0.6, 0.7] },
+    { name: "Nyxira",   x: 1300,  y: 300,  genome: [0.5, 0.55, 0.45, 0.6, 0.8, 0.3, 0.6, 0.75, 0.4, 0.7, 0.3, 0.8, 0.6, 0.2, 0.9, 1, 0.4, 0.8, 0.7, 0.4] },
+    { name: "Coralyn",  x: -600,  y: 800,  genome: [0.97, 0.05, 0.5, 0.4, 0.15, 0.7, 0.65, 0.6, 0.5, 0.85, 0.5, 0.4, 0.3, 0.7, 0.8, 1, 0.8, 0.4, 0.8, 0.55] },
+    { name: "Thessaly", x: -1400, y: 500,  genome: [0.6, 0.65, 0.75, 0.7, 0.2, 0.5, 0.55, 0.3, 0.1, 0.35, 0.8, 0.5, 0.7, 0.5, 0.4, 1, 0.3, 0.3, 0.3, 0.65] },
+    { name: "Umbrix",   x: 400,   y: 900,  genome: [0.32, 0.0, 0.55, 0.9, 0.95, 0.2, 0.4, 0.65, 0.6, 0.5, 0.2, 1.0, 0.8, 0.15, 0.35, 1, 0.2, 0.9, 0.4, 0.35] },
+    { name: "Feyra",    x: 1000,  y: -100, genome: [0.85, 0.4, 0.25, 0.35, 0.05, 0.9, 1.0, 0.8, 0.3, 0.9, 0.9, 0.7, 0.2, 0.95, 1.0, 1, 0.9, 0.7, 0.9, 0.85] },
+    { name: "Draumir",  x: -300,  y: -900, genome: [0.09, 0.1, 1.0, 0.65, 0.4, 0.4, 0.7, 0.12, 0.05, 0.2, 0.5, 0.3, 1.0, 0.3, 0.2, 1, 0.1, 0.2, 0.15, 1.0] }
+  ];
+  function addFounders() {
+    FOUNDERS.forEach(f => {
+      World.add(new Creature(f.genome.slice(), {
+        name: f.name, x: f.x, y: f.y, permanent: true,
+        creator: I18n.t("founderCreator")
+      }), { announce: false, burst: false });
+    });
+  }
+  addFounders();
+
   /* ══════════ 5. Red ══════════ */
   Net.connect({
     onRoster(list, chron) {
@@ -478,13 +503,6 @@ const App = (() => {
         World.add(new Creature(c.genome, { id: c.id, name: c.name || undefined, creator: c.creator, parents: c.parents, bornAt: c.bornAt, cosmetics: c.cosmetics }),
                    { announce: false, burst: false });
       });
-      // Si el mundo llega vacío, lo pueblan ancestros locales (solo visuales)
-      if (list.length === 0) {
-        for (let i = 0; i < 5; i++) {
-          World.add(new Creature(DNA.random(), { creator: I18n.t("ancestorsCreator") }),
-                    { announce: false, burst: false });
-        }
-      }
       chron.forEach(e => Chronicle.receive(e));
     },
     onBirth(c) {

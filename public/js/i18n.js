@@ -112,6 +112,7 @@ const I18n = (() => {
       "ancestorsCreator": "los ancestros",
       "ecosystemCreator": "el ecosistema",
       "anonymousCreator": "anónimo",
+      "founderCreator": "fundador del santuario",
 
       "dateLocale": "es",
 
@@ -341,6 +342,7 @@ const I18n = (() => {
       "ancestorsCreator": "the ancestors",
       "ecosystemCreator": "the ecosystem",
       "anonymousCreator": "anonymous",
+      "founderCreator": "sanctuary founder",
 
       "dateLocale": "en",
 

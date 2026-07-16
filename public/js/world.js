@@ -1,7 +1,9 @@
 /* ============================================================
    SIMBIONTE — world.js
    El ecosistema: población, cortejo, reproducción genética,
-   muerte, fósiles, partículas y plancton de fondo.
+   muerte, fósiles, partículas, plancton y objetos decorativos.
+   El mundo es más grande que la pantalla: la cámara (main.js) es
+   la que decide qué parte de estas coordenadas se ve.
    ============================================================ */
 "use strict";
 
@@ -10,10 +12,17 @@ const World = (() => {
   const fossils = [];
   const particles = [];
   const plankton = [];
+  const motes = [];
+  const bubbles = [];
   const food = [];
   let pointer = null;
   let listeners = { birth: [], death: [], courtship: [], event: [] };
   let paused = false;
+
+  /* El mundo lógico es bastante más grande que cualquier pantalla:
+     centrado en (0,0), como el resto de las coordenadas de cámara. */
+  const WORLD_W = 3200, WORLD_H = 2000;
+  const rand = span => (Math.random() - 0.5) * span;
 
   const MAX_POP = () => (window.SIMBIONTE_CONFIG?.MAX_POPULATION || 22);
 
@@ -24,8 +33,10 @@ const World = (() => {
     if (creatures.some(c => c.id === creature.id)) return creature;
     creatures.push(creature);
     while (creatures.length > MAX_POP()) {
-      const pool = creatures.filter(c => !c.mine);
-      const old = (pool.length ? pool : creatures).reduce((a, b) => (a.age > b.age ? a : b));
+      // los fundadores (permanent) y tu propia criatura nunca se descartan
+      const pool = creatures.filter(c => !c.mine && !c.permanent);
+      if (!pool.length) break;
+      const old = pool.reduce((a, b) => (a.age > b.age ? a : b));
       kill(old, { silent: true });
     }
     if (burst) burstAt(creature.x, creature.y, creature.hue1, 26);
@@ -113,15 +124,14 @@ const World = (() => {
   }
 
   /* ---------- Comida: partículas de luz para alimentar tu criatura ---------- */
-  const FOOD_INTERVAL = 5.5, MAX_FOOD = 5;
+  const FOOD_INTERVAL = 5.5, MAX_FOOD = 8;
   let foodTimer = 0;
 
-  function spawnFood(p) {
+  function spawnFood() {
     if (food.length >= MAX_FOOD) return;
     food.push({
       id: "f" + Math.random().toString(36).slice(2, 8),
-      x: 70 + Math.random() * (p.width - 140),
-      y: 70 + Math.random() * (p.height - 140),
+      x: rand(WORLD_W - 200), y: rand(WORLD_H - 200),
       r: 8, hue: 46 + Math.random() * 20, held: false, born: performance.now()
     });
   }
@@ -151,13 +161,13 @@ const World = (() => {
   }
   function updateFood(p, dt) {
     foodTimer += dt;
-    if (foodTimer > FOOD_INTERVAL) { foodTimer = 0; spawnFood(p); }
+    if (foodTimer > FOOD_INTERVAL) { foodTimer = 0; spawnFood(); }
     for (let i = food.length - 1; i >= 0; i--) {
       const f = food[i];
       if (!f.held) {
         f.y -= 7 * dt;
         f.x += Math.sin(performance.now() * 0.0012 + f.born) * 0.25;
-        if (f.y < -30) { food.splice(i, 1); continue; }
+        if (f.y < -WORLD_H / 2 - 30) { food.splice(i, 1); continue; }
       }
       p.noStroke();
       for (let k = 3; k > 0; k--) { p.fill(f.hue, 70, 95, 0.10 * k); p.circle(f.x, f.y, f.r * 2 * (k / 1.2 + 0.8)); }
@@ -173,11 +183,11 @@ const World = (() => {
   let activeEvent = null;
   const goldParticles = [];
 
-  function updateEvents(p, dt) {
+  function updateEvents(p, dt, view) {
     if (activeEvent) {
       activeEvent.elapsed += dt;
       if (activeEvent.type === "goldrain" && Math.random() < 0.6) {
-        goldParticles.push({ x: Math.random() * p.width, y: -10, vy: 2 + Math.random() * 2, life: 1 });
+        goldParticles.push({ x: view.x0 + Math.random() * (view.x1 - view.x0), y: view.y0 - 10, vy: 2 + Math.random() * 2, life: 1 });
       }
       if (activeEvent.elapsed > EVENT_DURATIONS[activeEvent.type]) activeEvent = null;
     } else {
@@ -192,22 +202,81 @@ const World = (() => {
     for (let i = goldParticles.length - 1; i >= 0; i--) {
       const g = goldParticles[i];
       g.y += g.vy; g.life -= 0.006;
-      if (g.life <= 0 || g.y > p.height + 10) { goldParticles.splice(i, 1); continue; }
+      if (g.life <= 0 || g.y > view.y1 + 10) { goldParticles.splice(i, 1); continue; }
       p.noStroke(); p.fill(46, 70, 96, g.life * 0.8); p.circle(g.x, g.y, 3);
     }
   }
 
-  function initPlankton(p) {
+  function initPlankton() {
     plankton.length = 0;
-    const n = Math.min(90, Math.floor(p.width * p.height / 16000));
+    const n = Math.min(220, Math.floor((WORLD_W * WORLD_H) / 16000));
     for (let i = 0; i < n; i++) {
-      plankton.push({ x: Math.random() * p.width, y: Math.random() * p.height,
+      plankton.push({ x: rand(WORLD_W), y: rand(WORLD_H),
                       z: 0.3 + Math.random() * 0.7, s: Math.random() * 1000 });
     }
   }
 
-  /* ---------- Bucle principal ---------- */
-  function updateAndDraw(p, dt) {
+  /* ---------- Motas: orbes bioluminiscentes decorativos (más grandes que el plancton) ---------- */
+  function initMotes() {
+    motes.length = 0;
+    const n = Math.min(70, Math.floor((WORLD_W * WORLD_H) / 95000));
+    for (let i = 0; i < n; i++) {
+      motes.push({ x: rand(WORLD_W), y: rand(WORLD_H),
+                   r: 6 + Math.random() * 15, hue: Math.random() * 360,
+                   s: Math.random() * 1000, speed: 0.15 + Math.random() * 0.3 });
+    }
+  }
+  function updateMotes(p, t) {
+    p.noStroke();
+    for (const m of motes) {
+      const bob = Math.sin(t * m.speed + m.s) * 20;
+      const drift = Math.cos(t * m.speed * 0.6 + m.s) * 16;
+      const glow = 0.55 + Math.sin(t * 0.8 + m.s) * 0.45;
+      const x = m.x + drift, y = m.y + bob;
+      for (let k = 2; k > 0; k--) {
+        p.fill(m.hue, 55, 92, 0.045 * glow * k);
+        p.circle(x, y, m.r * (2 + k));
+      }
+      p.fill(m.hue, 35, 100, 0.3 + glow * 0.25);
+      p.circle(x, y, m.r * 0.45);
+    }
+  }
+
+  /* ---------- Burbujas ascendentes (decorativas) ---------- */
+  function spawnBubble(fromBottom) {
+    bubbles.push({
+      x: rand(WORLD_W),
+      y: fromBottom ? WORLD_H / 2 + 30 : rand(WORLD_H),
+      r: 2 + Math.random() * 5, wob: Math.random() * 1000
+    });
+  }
+  function initBubbles() {
+    bubbles.length = 0;
+    const n = Math.min(50, Math.floor((WORLD_W * WORLD_H) / 130000));
+    for (let i = 0; i < n; i++) spawnBubble(false);
+  }
+  function updateBubbles(p, dt, t) {
+    for (let i = bubbles.length - 1; i >= 0; i--) {
+      const b = bubbles[i];
+      b.y -= (9 + b.r * 3) * dt;
+      b.x += Math.sin(t * 4 + b.wob) * 0.3;
+      if (b.y < -WORLD_H / 2 - 30) { bubbles.splice(i, 1); spawnBubble(true); continue; }
+      p.noFill();
+      p.stroke(190, 20, 100, 0.32);
+      p.strokeWeight(1);
+      p.circle(b.x, b.y, b.r * 2);
+      p.noStroke();
+      p.fill(190, 15, 100, 0.12);
+      p.circle(b.x - b.r * 0.3, b.y - b.r * 0.3, b.r * 0.7);
+    }
+  }
+
+  /* ---------- Bucle principal ----------
+     view = { x0, y0, x1, y1 }: el rectángulo del mundo que la
+     cámara está mostrando ahora mismo (lo calcula main.js). */
+  function updateAndDraw(p, dt, view) {
+    view = view || { x0: 0, y0: 0, x1: p.width, y1: p.height };
+
     // plancton (profundidad)
     p.noStroke();
     const t = p.millis() * 0.0002;
@@ -216,6 +285,8 @@ const World = (() => {
       p.fill(200, 30, 90, 0.10 + 0.10 * k.z);
       p.circle(k.x + dx, k.y + Math.cos(t * 2 + k.s) * 8 * k.z, 1.2 + k.z * 1.6);
     }
+    updateMotes(p, p.millis() * 0.001);
+    updateBubbles(p, dt, p.millis() * 0.001);
 
     // fósiles
     const now = performance.now();
@@ -224,7 +295,7 @@ const World = (() => {
       if (fade > 0) f.creature.drawFossil(p, fade);
     }
 
-    updateEvents(p, dt);
+    updateEvents(p, dt, view);
 
     if (!paused) {
       for (const c of [...creatures]) {
@@ -235,7 +306,8 @@ const World = (() => {
     }
 
     if (activeEvent?.type === "blackout") {
-      p.noStroke(); p.fill(230, 40, 2, 0.97); p.rect(0, 0, p.width, p.height);
+      p.noStroke(); p.fill(230, 40, 2, 0.97);
+      p.rect(view.x0, view.y0, view.x1 - view.x0, view.y1 - view.y0);
       for (const c of creatures) c.drawEyesOnly(p);
     } else {
       for (const c of creatures) c.draw(p);
@@ -256,12 +328,14 @@ const World = (() => {
 
   const api = {
     creatures, fossils, food, add, kill, nearest, nearestTo, on,
-    updateAndDraw, initPlankton, burstAt, heartsAt,
+    updateAndDraw, burstAt, heartsAt,
+    initPlankton: () => { initPlankton(); initMotes(); initBubbles(); }, // se conserva el nombre por compatibilidad
     foodAt, dragFood, releaseFood,
     announceCourtship: e => emit("courtship", e),
     setPointer(pt) { pointer = pt; }, get pointer() { return pointer; },
     setPaused(v) { paused = v; }, get paused() { return paused; },
-    get activeEvent() { return activeEvent; }
+    get activeEvent() { return activeEvent; },
+    get bounds() { return { w: WORLD_W, h: WORLD_H }; }
   };
   return api;
 })();
