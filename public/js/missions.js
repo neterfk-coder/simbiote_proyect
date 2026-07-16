@@ -1,9 +1,12 @@
 /* ============================================================
    SIMBIONTE — missions.js
-   Las 12 misiones del santuario: progresión, acertijos, eventos
-   de peligro, exploración y la runa perdida. El progreso vive en
-   localStorage; la recompensa la valida y paga wallet.js (y en
-   modo cuenta, el servidor — el cliente nunca decide el monto).
+   Las 22 misiones del santuario: las 12 fundacionales (progresión,
+   acertijos, peligro, exploración, la runa perdida) más 10 avanzadas
+   (dinastía de tres generaciones, cortejo de riesgo, resistencia,
+   enjambre social, un segundo tier de acertijos y dominio de la
+   economía). El progreso vive en localStorage; la recompensa la
+   valida y paga wallet.js (y en modo cuenta, el servidor — el
+   cliente nunca decide el monto).
    ============================================================ */
 "use strict";
 
@@ -25,15 +28,28 @@ const Missions = (() => {
     { key: "current",        icon: "🌊", tier: 3, reward: 40, tag: "danger" },
     { key: "blackout",       icon: "🌑", tier: 3, reward: 45, tag: "danger" },
     { key: "riddles",        icon: "🗝️", tier: 4, reward: 50, target: 3, tag: "riddle" },
-    { key: "rune",           icon: "✴️", tier: 4, reward: 60, tag: "legend" }
+    { key: "rune",           icon: "✴️", tier: 4, reward: 60, tag: "legend" },
+
+    /* --- Las diez difíciles: exigen dedicación, riesgo o suerte trabajada --- */
+    { key: "dynasty",        icon: "👑", tier: 4, reward: 70, tag: "legend" },
+    { key: "riskyCourtship", icon: "🎲", tier: 3, reward: 45, tag: "danger" },
+    { key: "elder",          icon: "🕯️", tier: 3, reward: 55 },
+    { key: "family",         icon: "👨‍👩‍👧‍👦", tier: 3, reward: 50, target: 5 },
+    { key: "swarm",          icon: "🐠", tier: 3, reward: 35, target: 8 },
+    { key: "goldrainBirth",  icon: "🌕", tier: 3, reward: 40, tag: "danger" },
+    { key: "eventsWitnessed",icon: "👁️‍🗨️", tier: 3, reward: 40, target: 3 },
+    { key: "riddles2",       icon: "🔮", tier: 4, reward: 65, target: 3, tag: "riddle" },
+    { key: "hoarder",        icon: "💰", tier: 4, reward: 40, target: 150 },
+    { key: "wardrobe",       icon: "🎭", tier: 4, reward: 45, target: 4 }
   ];
 
   /* ---------- Progreso persistente ---------- */
-  let progress = { corners: [], founders: [], toys: [], riddle: 0 };
+  const DEFAULT_PROGRESS = { corners: [], founders: [], toys: [], riddle: 0, riddle2: 0, lineage: {}, eventsSeen: [] };
+  let progress = { ...DEFAULT_PROGRESS };
   function load() {
     try {
       const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-      if (raw) progress = { corners: [], founders: [], toys: [], riddle: 0, ...raw };
+      if (raw) progress = { ...DEFAULT_PROGRESS, ...raw };
     } catch { /* progreso corrupto: se reinicia */ }
   }
   function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(progress)); }
@@ -63,9 +79,28 @@ const Missions = (() => {
     else if (kind === "toyUsed") addUnique(progress.toys, value, "toymaster", 4);
     else if (kind === "eventSurvived") complete(value); // "current" | "blackout"
     else if (kind === "runeFound") complete("rune");
+    else if (kind === "riskyCourtship") complete("riskyCourtship");
+    else if (kind === "goldrainBirth") complete("goldrainBirth");
+    else if (kind === "eventSeen") addUnique(progress.eventsSeen, value, "eventsWitnessed", 3);
+    else if (kind === "mine") registerLineage(value, 0);
+    else if (kind === "courtship") onCourtship(value);
   }
 
-  /* ---------- Tick por frame: esquinas del mundo + eventos de peligro ---------- */
+  /* ---------- Dinastía: tres generaciones desde cualquiera de tus criaturas ---------- */
+  function registerLineage(id, depth) {
+    if (progress.lineage[id] !== undefined && progress.lineage[id] <= depth) return;
+    progress.lineage[id] = depth;
+    save();
+    if (depth >= 2) complete("dynasty");
+  }
+  function onCourtship({ a, b, child }) {
+    const da = progress.lineage[a.id], db = progress.lineage[b.id];
+    if (da === undefined && db === undefined) return;
+    const depth = Math.min(da ?? Infinity, db ?? Infinity) + 1;
+    registerLineage(child.id, depth);
+  }
+
+  /* ---------- Tick por frame: esquinas del mundo, peligro, resistencia ---------- */
   let liveEvent = null; // evento peligroso en curso con mi criatura viva
   function tick(world, camera, myCreature) {
     // exploración: llegar a las cuatro esquinas del mundo
@@ -82,6 +117,11 @@ const Missions = (() => {
       if (mineAlive) notify("eventSurvived", liveEvent);
       liveEvent = null;
     }
+    if (!mineAlive) { lastNearby = 0; return; }
+    lastNearby = myCreature.nearbyCount(world, 140);
+    if (!isDone("elder") && myCreature.age > 180) complete("elder");
+    if (!isDone("family") && (myCreature.childCount || 0) >= 5) complete("family");
+    if (!isDone("swarm") && lastNearby >= 8) complete("swarm");
   }
 
   /* ---------- La runa perdida: un lugar secreto por sesión ---------- */
@@ -132,7 +172,28 @@ const Missions = (() => {
     return { ok: true, next: progress.riddle };
   }
 
+  /* ---------- Segundo tier de acertijos: más difíciles, se desbloquea con el primero ---------- */
+  const RIDDLE_ANSWERS_2 = [
+    ["genes", "genes"],
+    ["diamantes", "diamonds", "diamante", "diamond"],
+    ["mundo", "world", "mapa", "map"]
+  ];
+  function riddle2Attempt(answer) {
+    if (progress.riddle2 >= 3) return { done: true };
+    const ok = RIDDLE_ANSWERS_2[progress.riddle2].includes(norm(answer));
+    if (!ok) return { ok: false };
+    progress.riddle2++;
+    save();
+    if (progress.riddle2 >= 3) { complete("riddles2"); return { ok: true, done: true }; }
+    render();
+    return { ok: true, next: progress.riddle2 };
+  }
+
   /* ---------- Progreso mostrado por misión ---------- */
+  let lastNearby = 0;
+  function wardrobeSlotsFilled() {
+    return new Set(Wallet.equippedItems().map(id => Wallet.WEAR_SLOTS[id]).filter(Boolean)).size;
+  }
   function progressOf(key) {
     const mine = hooks.getMyCreature();
     if (key === "fed5") return Math.min(5, mine?.feedCount || 0);
@@ -140,6 +201,12 @@ const Missions = (() => {
     if (key === "toymaster") return progress.toys.length;
     if (key === "explorer") return progress.corners.length;
     if (key === "riddles") return progress.riddle;
+    if (key === "riddles2") return progress.riddle2;
+    if (key === "family") return Math.min(5, mine?.childCount || 0);
+    if (key === "swarm") return Math.min(8, lastNearby);
+    if (key === "eventsWitnessed") return progress.eventsSeen.length;
+    if (key === "hoarder") return Math.min(150, Wallet.diamonds);
+    if (key === "wardrobe") return wardrobeSlotsFilled();
     return 0;
   }
 
@@ -161,24 +228,26 @@ const Missions = (() => {
 
       const cur = progressOf(m.key);
       const showBar = m.target && !finished;
+      const riddle2Locked = m.key === "riddles2" && !isDone("riddles");
       card.innerHTML = `
         <div class="ms-card-top">
           <span class="ms-icon">${m.icon}</span>
           <span class="ms-tier" title="${I18n.t("missions.tier" + m.tier)}">${"●".repeat(m.tier)}${"○".repeat(4 - m.tier)}</span>
         </div>
         <h3 class="ms-name">${I18n.t("mission." + m.key)}</h3>
-        <p class="ms-desc">${I18n.t("missionDesc." + m.key)}</p>
+        <p class="ms-desc">${riddle2Locked ? I18n.t("missions.locked") : I18n.t("missionDesc." + m.key)}</p>
         ${m.tag ? `<span class="ms-tag ms-tag-${m.tag}">${I18n.t("missions.tag." + m.tag)}</span>` : ""}
-        ${showBar ? `<div class="ms-bar"><div class="ms-bar-fill" style="width:${cur / m.target * 100}%"></div></div>
+        ${showBar && !riddle2Locked ? `<div class="ms-bar"><div class="ms-bar-fill" style="width:${cur / m.target * 100}%"></div></div>
                      <span class="ms-count">${cur} / ${m.target}</span>` : ""}
         <div class="ms-foot">
           ${finished
             ? `<span class="ms-done-chip">✓ ${I18n.t("missions.done")}</span>`
             : `<span class="ms-reward">💎 ${m.reward}</span>`}
-          ${m.key === "riddles" && !finished ? `<button type="button" class="btn btn-primary btn-small ms-solve">${I18n.t("missions.solve")}</button>` : ""}
+          ${m.key === "riddles" && !finished ? `<button type="button" class="btn btn-primary btn-small ms-solve" data-riddle-tier="1">${I18n.t("missions.solve")}</button>` : ""}
+          ${m.key === "riddles2" && !finished && !riddle2Locked ? `<button type="button" class="btn btn-primary btn-small ms-solve" data-riddle-tier="2">${I18n.t("missions.solve")}</button>` : ""}
         </div>`;
       const solveBtn = card.querySelector(".ms-solve");
-      if (solveBtn) solveBtn.addEventListener("click", openRiddle);
+      if (solveBtn) solveBtn.addEventListener("click", () => openRiddle(+solveBtn.dataset.riddleTier));
       grid.appendChild(card);
     }
   }
@@ -194,11 +263,14 @@ const Missions = (() => {
     closeRiddle();
   }
 
-  /* ---------- Modal del acertijo ---------- */
-  function openRiddle() {
-    if (progress.riddle >= 3) return;
-    $("#riddle-step").textContent = I18n.t("riddle.step", { n: progress.riddle + 1 });
-    $("#riddle-text").textContent = I18n.t("riddle.r" + (progress.riddle + 1));
+  /* ---------- Modal del acertijo (dos niveles: 1 y 2) ---------- */
+  let riddleTier = 1;
+  function openRiddle(tier) {
+    riddleTier = tier || riddleTier;
+    const done = riddleTier === 2 ? progress.riddle2 : progress.riddle;
+    if (done >= 3) return;
+    $("#riddle-step").textContent = I18n.t(riddleTier === 2 ? "riddle.step2" : "riddle.step", { n: done + 1 });
+    $("#riddle-text").textContent = I18n.t((riddleTier === 2 ? "riddle.r2_" : "riddle.r") + (done + 1));
     $("#riddle-input").value = "";
     $("#riddle-error").classList.add("hidden");
     $("#panel-riddle").classList.add("is-open");
@@ -206,7 +278,7 @@ const Missions = (() => {
   }
   function closeRiddle() { $("#panel-riddle").classList.remove("is-open"); }
   function submitRiddle() {
-    const result = riddleAttempt($("#riddle-input").value);
+    const result = riddleTier === 2 ? riddle2Attempt($("#riddle-input").value) : riddleAttempt($("#riddle-input").value);
     if (result.done) { closeRiddle(); return; }
     if (!result.ok) {
       const err = $("#riddle-error");
@@ -218,7 +290,7 @@ const Missions = (() => {
       card.classList.add("shake");
       return;
     }
-    openRiddle(); // acierto: pasa al siguiente
+    openRiddle(riddleTier); // acierto: pasa al siguiente
   }
 
   function init(options) {
@@ -227,7 +299,11 @@ const Missions = (() => {
     $("#ms-close").addEventListener("click", close);
     $("#riddle-close").addEventListener("click", closeRiddle);
     $("#riddle-form").addEventListener("submit", e => { e.preventDefault(); submitRiddle(); });
-    Wallet.onChange(() => render());
+    Wallet.onChange(state => {
+      if (!isDone("hoarder") && state.diamonds >= 150) complete("hoarder");
+      if (!isDone("wardrobe") && wardrobeSlotsFilled() >= 4) complete("wardrobe");
+      render();
+    });
     I18n.onChange(() => render());
   }
 

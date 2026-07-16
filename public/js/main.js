@@ -549,6 +549,7 @@ const App = (() => {
     World.add(myCreature);
     Net.sendBirth(myCreature);
     Chronicle.record("birth", myCreature);
+    Missions.notify("mine", myCreature.id);
     enterWorld();
     // tarjeta personal
     $("#my-name").textContent = myCreature.name;
@@ -603,6 +604,7 @@ const App = (() => {
     fill.dataset.level = level;
     $("#courtship-level").textContent = I18n.t("courtship.level." + level);
     $("#panel-courtship").dataset.targetId = target.id;
+    $("#panel-courtship").dataset.level = level;
     $("#panel-courtship").classList.add("is-open");
   }
   $("#btn-courtship-confirm").addEventListener("click", () => {
@@ -610,6 +612,7 @@ const App = (() => {
     panel.classList.remove("is-open");
     if (!myCreature) return;
     const targetId = panel.dataset.targetId;
+    const wasLowOdds = panel.dataset.level === "low";
     const target = World.creatures.find(c => c.id === targetId);
     if (!target) return;
     if (myCreature.mateCooldown > 0 || target.mateCooldown > 0) { toast(I18n.t("toast.courtshipCooldown"), "coral"); return; }
@@ -617,6 +620,8 @@ const App = (() => {
     checkMilestone("firstCourtship", myCreature);
     if (result.success) {
       toast(I18n.t("toast.courtshipSuccess", { a: myCreature.name, b: target.name, child: result.child.name }));
+      if (wasLowOdds) Missions.notify("riskyCourtship");
+      if (World.activeEvent?.type === "goldrain") Missions.notify("goldrainBirth");
     } else {
       toast(I18n.t("toast.courtshipFail", { a: myCreature.name, b: target.name }), "coral");
     }
@@ -695,9 +700,13 @@ const App = (() => {
   World.on("courtship", e => {
     Chronicle.record("courtship", e);
     if (e.a === myCreature || e.b === myCreature) checkMilestone("firstChild", myCreature);
+    Missions.notify("courtship", e);
   });
   World.on("death", c => { if (Math.random() < 0.5) Chronicle.record("death", c); });
-  World.on("event", type => Chronicle.render(I18n.t("event." + type), { broadcast: false }));
+  World.on("event", type => {
+    Chronicle.render(I18n.t("event." + type), { broadcast: false });
+    Missions.notify("eventSeen", type);
+  });
 
   /* ══════════ 5b. Diamantes, tienda y cuenta ══════════ */
   function renderWallet(state) {
