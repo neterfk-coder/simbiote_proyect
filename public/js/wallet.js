@@ -13,7 +13,10 @@
 
 const Wallet = (() => {
   const STORAGE_KEY = "simbionte_wallet_guest";
-  const MISSIONS = { firstBirth: 25, survive: 20, fed5: 15, firstChild: 40, firstCourtship: 10 };
+  const MISSIONS = {
+    firstBirth: 25, survive: 20, fed5: 15, firstChild: 40, firstCourtship: 10,
+    toymaster: 30, founders: 35, explorer: 30, current: 40, blackout: 45, riddles: 50, rune: 60
+  };
   const SHOP_ITEMS = {
     food_spark: 8, food_feast: 25,
     gift_hearts: 12, gift_confetti: 15,
@@ -81,7 +84,7 @@ const Wallet = (() => {
   }
   async function loadRemote() {
     const data = await api("/api/wallet");
-    if (!data.error) state = { diamonds: data.diamonds || 0, inventory: data.inventory || [], missionsDone: [] };
+    if (!data.error) state = { diamonds: data.diamonds || 0, inventory: data.inventory || [], missionsDone: data.missionsDone || [] };
     emit();
   }
 
@@ -97,7 +100,9 @@ const Wallet = (() => {
     if (Auth.available && Auth.user) {
       const data = await api("/api/missions/claim", { missionKey: key });
       if (data.error || data.alreadyClaimed) return null;
-      state.diamonds = data.diamonds; emit();
+      state.diamonds = data.diamonds;
+      if (!state.missionsDone.includes(key)) state.missionsDone.push(key);
+      emit();
       return { diamonds: data.diamonds, reward: data.reward };
     }
     return claimMissionLocal(key);
@@ -129,6 +134,7 @@ const Wallet = (() => {
     claimMission, purchase, equip, isOwned, isEquipped, equippedItems,
     onChange(fn) { listeners.push(fn); },
     get diamonds() { return state.diamonds; },
-    get inventory() { return state.inventory; }
+    get inventory() { return state.inventory; },
+    get missionsDone() { return state.missionsDone; }
   };
 })();

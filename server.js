@@ -142,7 +142,8 @@ app.post('/api/chronicle', async (req, res) => {
    Supabase configurado, estos endpoints responden 503 y el frontend cae
    automáticamente al wallet de invitado en localStorage (ver wallet.js). */
 const MISSIONS = {
-  firstBirth: 25, survive: 20, fed5: 15, firstChild: 40, firstCourtship: 10
+  firstBirth: 25, survive: 20, fed5: 15, firstChild: 40, firstCourtship: 10,
+  toymaster: 30, founders: 35, explorer: 30, current: 40, blackout: 45, riddles: 50, rune: 60
 };
 const SHOP_ITEMS = {
   food_spark: 8, food_feast: 25,
@@ -174,7 +175,8 @@ app.get('/api/wallet', async (req, res) => {
   if (!user) return res.status(supabase ? 401 : 503).json({ error: supabase ? 'No autenticado.' : 'Cuentas no configuradas.' });
   const wallet = await getOrCreateWallet(user.id);
   const { data: inventory } = await supabase.from('inventory').select('item_id, equipped').eq('user_id', user.id);
-  res.json({ diamonds: wallet.diamonds, inventory: inventory || [] });
+  const { data: missions } = await supabase.from('missions_done').select('mission_key').eq('user_id', user.id);
+  res.json({ diamonds: wallet.diamonds, inventory: inventory || [], missionsDone: (missions || []).map(m => m.mission_key) });
 });
 
 app.post('/api/missions/claim', async (req, res) => {

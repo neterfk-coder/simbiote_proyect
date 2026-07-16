@@ -167,6 +167,36 @@
   </div>
 </section>
 
+<!-- ═══ PANTALLA: MISIONES ═══ -->
+<section id="screen-missions" class="screen ms-screen-outer">
+  <div class="ms-screen glass">
+    <div class="panel-head">
+      <h2 class="lb-title" data-i18n="missions.screenTitle">Misiones del santuario</h2>
+      <button id="ms-close" class="icon-btn" data-i18n-aria="missions.closeAria" aria-label="Cerrar misiones">✕</button>
+    </div>
+    <p class="ms-sub" data-i18n="missions.sub">Doce pruebas te esperan: cuida, explora, resuelve y sobrevive.</p>
+    <div class="ms-progress-row">
+      <span id="ms-progress-label" class="ms-progress-label">—</span>
+      <div class="ms-progress-track"><div id="ms-progress-fill" class="ms-progress-fill"></div></div>
+    </div>
+    <div id="ms-grid" class="ms-grid"></div>
+  </div>
+</section>
+
+<!-- Modal: acertijo -->
+<aside id="panel-riddle" class="glass courtship-modal riddle-modal" aria-label="Acertijo">
+  <div class="panel-head">
+    <h3 id="riddle-step" class="panel-title">—</h3>
+    <button id="riddle-close" class="icon-btn" data-i18n-aria="riddle.closeAria" aria-label="Cerrar acertijo">✕</button>
+  </div>
+  <p id="riddle-text" class="riddle-text">—</p>
+  <form id="riddle-form" novalidate>
+    <input id="riddle-input" type="text" maxlength="40" autocomplete="off" data-i18n-placeholder="riddle.placeholder" placeholder="Tu respuesta…">
+    <p id="riddle-error" class="riddle-error hidden"></p>
+    <button type="submit" class="btn btn-primary btn-small" data-i18n="riddle.submit">Responder</button>
+  </form>
+</aside>
+
 <!-- ═══ PANTALLA: RANKING EN VIVO ═══ -->
 <section id="screen-leaderboard" class="screen lb-screen-outer">
   <div class="lb-screen glass">
@@ -218,6 +248,10 @@
         <button type="button" data-lang="es" aria-label="Español">ES</button>
         <button type="button" data-lang="en" aria-label="English">EN</button>
       </div>
+      <button id="btn-missions" class="icon-btn" data-i18n-aria="hud.missionsAria" data-i18n-title="hud.missionsTitle" aria-label="Abrir las misiones" title="Misiones">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg>
+        <span class="hud-secondary-label" data-i18n="hud.missionsTitle">Misiones</span>
+      </button>
       <button id="btn-leaderboard" class="icon-btn" data-i18n-aria="hud.leaderboardAria" data-i18n-title="hud.leaderboardTitle" aria-label="Abrir el ranking" title="Ranking en vivo">
         <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v6a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 5"/><path d="M17 6h3a3 3 0 0 1-3 5"/></svg>
         <span class="hud-secondary-label" data-i18n="hud.leaderboardTitle">Ranking en vivo</span>
@@ -431,6 +465,7 @@
 <script src="js/auth.js"></script>
 <script src="js/wallet.js"></script>
 <script src="js/courtship.js"></script>
+<script src="js/missions.js"></script>
 <script src="js/shop.js"></script>
 <script src="js/leaderboard.js"></script>
 <script src="js/certificate.js"></script>

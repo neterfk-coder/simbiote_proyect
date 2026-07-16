@@ -59,7 +59,9 @@ const App = (() => {
       World.setPointer({ x: w.x, y: w.y, held: p.mouseIsPressed && !draggingFood && !draggingCreature && !draggingToy });
       const tl = screenToWorld(0, 0), br = screenToWorld(innerWidth, innerHeight);
       World.updateAndDraw(p, dt, { x0: tl.x, y0: tl.y, x1: br.x, y1: br.y });
+      Missions.drawRune(p);
       p.pop();
+      Missions.tick(World, camera, myCreature);
       if (draggingToy) drawToyCursor(p, draggingToy);
       checkSurvivalMilestone();
     };
@@ -110,7 +112,11 @@ const App = (() => {
         return;
       }
       if (panFrom) {
-        if (!isPanning) { const w = screenToWorld(panFrom.sx, panFrom.sy); inspectAt(w.x, w.y); }
+        if (!isPanning) {
+          const w = screenToWorld(panFrom.sx, panFrom.sy);
+          if (Missions.tryRuneAt(w.x, w.y)) World.burstAt(w.x, w.y, 45, 46);
+          else inspectAt(w.x, w.y);
+        }
         panFrom = null; isPanning = false;
       }
     }
@@ -206,6 +212,7 @@ const App = (() => {
     else if (type === "feather") World.burstAt(x, y, 48, 14);
     else if (type === "star") World.heartsAt(x, y, target.hue1);
     toast(I18n.t("toast.toy." + type, { name: target.name }));
+    Missions.notify("toyUsed", type);
   }
 
   function drawAbyss(p) {
@@ -584,6 +591,7 @@ const App = (() => {
     renderInspect(target);
     panel.classList.add("is-open");
     AudioRitual.sing(target.genome);
+    if (target.permanent) Missions.notify("founderSeen", target.name);
   }
 
   /* ══════════ 4b. Cortejo propuesto (proposeCourtship) ══════════ */
@@ -801,7 +809,14 @@ const App = (() => {
   Auth.onChange(() => { renderAccountPanel(); if (myCreature) myCreature.cosmetics = Wallet.equippedItems(); });
   setAuthMode("signin");
 
-  /* ══════════ 5c. Ranking en vivo ══════════ */
+  /* ══════════ 5c. Misiones ══════════ */
+  Missions.init({
+    onComplete: key => checkMilestone(key, myCreature || { name: "" }),
+    getMyCreature: () => myCreature
+  });
+  $("#btn-missions").addEventListener("click", () => Missions.open());
+
+  /* ══════════ 5c bis. Ranking en vivo ══════════ */
   Leaderboard.init(() => myCreature?.id);
   $("#btn-leaderboard").addEventListener("click", () => Leaderboard.open());
   $("#lb-close").addEventListener("click", () => Leaderboard.close());
@@ -917,7 +932,9 @@ const App = (() => {
   addEventListener("keydown", e => {
     if (e.key !== "Escape") return;
     $$(".panel").forEach(p => p.classList.remove("is-open"));
+    $("#panel-riddle").classList.remove("is-open");
     if (Leaderboard.isOpen) Leaderboard.close();
+    if (Missions.isOpen) Missions.close();
     if ($("#screen-account").classList.contains("is-active")) closeAccountScreen();
     closeHudMore();
   });
