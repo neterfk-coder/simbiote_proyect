@@ -14,7 +14,7 @@ const App = (() => {
 
   let p5world = null;
   let myCreature = null;
-  const ritual = { voice: null, gesture: null, stroke: null };
+  const ritual = { voice: null, gesture: null, stroke: null, manual: null };
   let lastFrame = performance.now();
   let draggingFood = null;
   let draggingCreature = false;
@@ -244,14 +244,15 @@ const App = (() => {
       o.classList.toggle("is-done", s < n);
     });
     if (n === 2) startGesture();
-    if (n === 3) startStroke();
+    if (n === 3) switchDesignTab("draw", true);
     if (n === 4) weaveDNA();
   }
 
   function openRitual() {
-    ritual.voice = ritual.gesture = ritual.stroke = null;
+    ritual.voice = ritual.gesture = ritual.stroke = ritual.manual = null;
     $("#voice-status").textContent = I18n.t("ritual.voice.idle");
     $("#btn-record").classList.remove("is-recording");
+    resetManualControls();
     show("screen-ritual");
     setStep(1);
   }
@@ -297,23 +298,191 @@ const App = (() => {
     stepSessions.push(s);
   }
 
-  /* --- Paso 3: trazo (termina al soltar) --- */
+  /* --- Paso 3: diseño — trazo libre, avatar prediseñado o personalización manual --- */
+  const DEFAULT_STROKE = { curvature: .5, closure: .4, density: .5, ratio: .4 };
+  let activeDesignTab = "draw";
+
   function startStroke() {
     const canvas = $("#stroke-canvas");
     const s = Capture.session(canvas, "stroke", {
       onDone: features => {
-        ritual.stroke = features || { curvature: .5, closure: .4, density: .5, ratio: .4 };
+        ritual.stroke = features || DEFAULT_STROKE;
+        ritual.manual = null;
         setStep(4);
       }
     });
     stepSessions.push(s);
   }
 
+  function switchDesignTab(tab, force) {
+    if (tab === activeDesignTab && !force) return;
+    activeDesignTab = tab;
+    $$(".design-tab").forEach(b => b.classList.toggle("is-active", b.dataset.design === tab));
+    $$(".design-panel").forEach(p => p.classList.toggle("is-active", p.dataset.designPanel === tab));
+    stepSessions.forEach(s => s.cancel && s.cancel());
+    stepSessions = [];
+    if (tab === "draw") startStroke();
+    else if (tab === "avatar") buildAvatarGrid();
+    else if (tab === "manual") ensureManualPreviewCanvas();
+  }
+  $$(".design-tab").forEach(btn => btn.addEventListener("click", () => switchDesignTab(btn.dataset.design)));
+
+  /* --- Avatares prediseñados: la misma "receta" de trazo, sin dibujar --- */
+  const AVATAR_PRESETS = [
+    { key: "sphere",   stroke: { curvature: .85, closure: .70, density: .30, ratio: .55 } },
+    { key: "star",     stroke: { curvature: .15, closure: .50, density: .75, ratio: .50 } },
+    { key: "jelly",    stroke: { curvature: .90, closure: .30, density: .50, ratio: .68 } },
+    { key: "crystal",  stroke: { curvature: .10, closure: .80, density: .40, ratio: .42 } },
+    { key: "serpent",  stroke: { curvature: .70, closure: .40, density: .60, ratio: .30 } },
+    { key: "hedgehog", stroke: { curvature: .20, closure: .35, density: .85, ratio: .48 } }
+  ];
+  function drawAvatarPreview(ctx, w, h, genome) {
+    const G = DNA.G, g = genome;
+    ctx.clearRect(0, 0, w, h);
+    const cx = w / 2, cy = h / 2 + 4;
+    const r = Math.min(w, h) * 0.3 * (0.7 + g[G.SIZE] * 0.6);
+    const lobes = 3 + Math.round(g[G.LOBES] * 6);
+    const hue1 = g[G.HUE1] * 360, hue2 = g[G.HUE2] * 360;
+    const auraR = r * (1.6 + g[G.AURA] * 1.2);
+    const grad = ctx.createRadialGradient(cx, cy, r * 0.2, cx, cy, auraR);
+    grad.addColorStop(0, `hsla(${hue1},70%,55%,.32)`);
+    grad.addColorStop(1, `hsla(${hue1},70%,55%,0)`);
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(cx, cy, auraR, 0, Math.PI * 2); ctx.fill();
+    const tent = Math.max(1, Math.round(g[G.TENTACLES] * 8));
+    ctx.strokeStyle = `hsla(${hue2},65%,60%,.55)`; ctx.lineWidth = 1.4;
+    for (let i = 0; i < tent; i++) {
+      const a = (i / tent) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+      ctx.lineTo(cx + Math.cos(a) * (r + 9), cy + Math.sin(a) * (r + 9));
+      ctx.stroke();
+    }
+    [1, 0.6].forEach((lr, layer) => {
+      ctx.beginPath();
+      const steps = 40;
+      for (let i = 0; i <= steps; i++) {
+        const a = (i / steps) * Math.PI * 2;
+        const lobe = Math.sin(a * lobes) * (0.12 + g[G.FLOW] * 0.18);
+        const spike = g[G.SPIKE] * 0.22 * Math.sin(a * lobes * 2.3 + layer);
+        const rr = r * lr * (1 + lobe + spike);
+        const x = cx + Math.cos(a) * rr, y = cy + Math.sin(a) * rr;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fillStyle = layer === 0 ? `hsla(${hue1},70%,45%,.9)` : `hsla(${hue2},70%,68%,.85)`;
+      ctx.fill();
+    });
+    const eyes = 1 + Math.round(g[G.EYES] * 2);
+    for (let i = 0; i < eyes; i++) {
+      const off = (i - (eyes - 1) / 2) * r * 0.4;
+      ctx.fillStyle = "rgba(10,10,16,.92)";
+      ctx.beginPath(); ctx.arc(cx + r * 0.3, cy + off, r * 0.16, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.beginPath(); ctx.arc(cx + r * 0.33, cy + off - r * 0.04, r * 0.06, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  function buildAvatarGrid() {
+    const grid = $("#avatar-grid");
+    grid.innerHTML = "";
+    const voice = ritual.voice || { pitch: .5, energy: .4, brightness: .5 };
+    const gesture = ritual.gesture || { speed: .4, angularity: .4, extent: .4, curvature: .4, closure: .3, density: .4, ratio: .4 };
+    AVATAR_PRESETS.forEach(preset => {
+      const genome = DNA.fromRitual(voice, gesture, preset.stroke);
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "avatar-card";
+      card.dataset.avatar = preset.key;
+      const canvas = document.createElement("canvas");
+      canvas.width = 132; canvas.height = 110;
+      card.appendChild(canvas);
+      const label = document.createElement("span");
+      label.textContent = I18n.t("avatar." + preset.key);
+      card.appendChild(label);
+      card.addEventListener("click", () => selectAvatar(preset, card));
+      grid.appendChild(card);
+      drawAvatarPreview(canvas.getContext("2d"), canvas.width, canvas.height, genome);
+    });
+  }
+  function selectAvatar(preset) {
+    $$(".avatar-card").forEach(c => c.classList.toggle("is-selected", c.dataset.avatar === preset.key));
+    ritual.stroke = preset.stroke;
+    ritual.manual = null;
+    stepSessions.forEach(s => s.cancel && s.cancel());
+    stepSessions = [];
+    setTimeout(() => setStep(4), 260);
+  }
+
+  /* --- Personalización manual: color y forma a mano, con vista previa en vivo --- */
+  const MANUAL_DEFAULTS = { hue1: .5, hue2: .55, glow: .6, size: .5, lobes: .5, spike: .3, flow: .6, tentacles: .4, eyes: .4 };
+  const MANUAL_FIELDS = Object.keys(MANUAL_DEFAULTS);
+  let manual = { ...MANUAL_DEFAULTS };
+  let manualPreviewP5 = null, manualPreviewCreature = null;
+  MANUAL_FIELDS.forEach(f => {
+    const el = $("#manual-" + f);
+    el.addEventListener("input", () => {
+      manual[f] = +el.value / 100;
+      refreshManualPreview();
+    });
+  });
+  function resetManualControls() {
+    manual = { ...MANUAL_DEFAULTS };
+    MANUAL_FIELDS.forEach(f => { $("#manual-" + f).value = Math.round(manual[f] * 100); });
+    if (manualPreviewP5) refreshManualPreview();
+  }
+  function currentManualGenome() {
+    const voice = ritual.voice || { pitch: .5, energy: .4, brightness: .5 };
+    const gesture = ritual.gesture || { speed: .4, angularity: .4, extent: .4, curvature: .4, closure: .3, density: .4, ratio: .4 };
+    const g = DNA.fromRitual(voice, gesture, DEFAULT_STROKE);
+    const G = DNA.G;
+    g[G.HUE1] = manual.hue1; g[G.HUE2] = manual.hue2; g[G.GLOW] = manual.glow;
+    g[G.SIZE] = manual.size; g[G.LOBES] = manual.lobes; g[G.SPIKE] = manual.spike;
+    g[G.FLOW] = manual.flow; g[G.TENTACLES] = manual.tentacles; g[G.EYES] = manual.eyes;
+    return g;
+  }
+  function refreshManualPreview() {
+    manualPreviewCreature = new Creature(currentManualGenome(), { x: 0, y: 0, mine: false });
+    manualPreviewCreature.age = 6;        // ya creció del todo (ver draw(): age/6)
+    manualPreviewCreature.maxAge = Infinity; // nunca se atenúa por "vejez" en la vista previa
+  }
+  function ensureManualPreviewCanvas() {
+    if (manualPreviewP5) { refreshManualPreview(); return; }
+    const container = $("#manual-preview-canvas");
+    manualPreviewP5 = new p5(p => {
+      p.setup = () => {
+        const rect = container.getBoundingClientRect();
+        p.createCanvas(Math.max(120, rect.width), Math.max(120, rect.height)).parent(container);
+        p.colorMode(p.HSB, 360, 100, 100, 1);
+        refreshManualPreview();
+      };
+      p.draw = () => {
+        p.clear();
+        if (!manualPreviewCreature) return;
+        manualPreviewCreature.x = p.width / 2;
+        manualPreviewCreature.y = p.height / 2;
+        manualPreviewCreature.draw(p);
+      };
+    });
+  }
+  $("#btn-manual-confirm").addEventListener("click", () => {
+    ritual.manual = { ...manual };
+    ritual.stroke = ritual.stroke || DEFAULT_STROKE;
+    stepSessions.forEach(s => s.cancel && s.cancel());
+    stepSessions = [];
+    setStep(4);
+  });
+
   /* --- Paso 4: fusión de ADN (la firma visual del proyecto) --- */
   function weaveDNA() {
     const canvas = $("#dna-canvas");
     const ctx = canvas.getContext("2d");
     const genome = DNA.fromRitual(ritual.voice, ritual.gesture, ritual.stroke);
+    if (ritual.manual) {
+      const G = DNA.G, m = ritual.manual;
+      genome[G.HUE1] = m.hue1; genome[G.HUE2] = m.hue2; genome[G.GLOW] = m.glow;
+      genome[G.SIZE] = m.size; genome[G.LOBES] = m.lobes; genome[G.SPIKE] = m.spike;
+      genome[G.FLOW] = m.flow; genome[G.TENTACLES] = m.tentacles; genome[G.EYES] = m.eyes;
+    }
     const W = canvas.width, H = canvas.height;
     const t0 = performance.now();
     const captions = [0, 1, 2, 3].map(i => I18n.t("ritual.dna.caption" + i));

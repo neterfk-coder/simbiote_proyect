@@ -87,12 +87,62 @@
       </div>
     </div>
 
-    <!-- Paso 3: TRAZO -->
+    <!-- Paso 3: DISEÑO (trazo libre, avatar prediseñado o personalización manual) -->
     <div class="ritual-step" data-step="3">
-      <h2 class="ritual-title" data-i18n="ritual.stroke.title">Dona un trazo</h2>
-      <p class="ritual-hint" data-i18n="ritual.stroke.hint">Dibuja una sola línea, la que quieras.<br>Al soltar, tu trazo se convertirá en su anatomía.</p>
-      <div class="capture-frame">
-        <canvas id="stroke-canvas"></canvas>
+      <h2 class="ritual-title" data-i18n="ritual.design.title">Dale forma</h2>
+      <p class="ritual-hint" data-i18n="ritual.design.hint">Dibujá su anatomía, elegí un avatar o pintala vos mismo, a mano.</p>
+
+      <div class="design-tabs" role="tablist">
+        <button type="button" class="design-tab is-active" data-design="draw" data-i18n="ritual.design.tabDraw">Dibujar</button>
+        <button type="button" class="design-tab" data-design="avatar" data-i18n="ritual.design.tabAvatar">Avatar</button>
+        <button type="button" class="design-tab" data-design="manual" data-i18n="ritual.design.tabManual">Personalizar</button>
+      </div>
+
+      <div class="design-panel is-active" data-design-panel="draw">
+        <p class="ritual-hint design-subhint" data-i18n="ritual.stroke.hint">Dibuja una sola línea, la que quieras.<br>Al soltar, tu trazo se convertirá en su anatomía.</p>
+        <div class="capture-frame">
+          <canvas id="stroke-canvas"></canvas>
+        </div>
+      </div>
+
+      <div class="design-panel" data-design-panel="avatar">
+        <p class="ritual-hint design-subhint" data-i18n="ritual.design.avatarHint">Tocá el que más se parezca a lo que imaginás.</p>
+        <div id="avatar-grid" class="avatar-grid"></div>
+      </div>
+
+      <div class="design-panel" data-design-panel="manual">
+        <div class="manual-designer">
+          <div class="manual-preview glass">
+            <div id="manual-preview-canvas" class="manual-preview-canvas"></div>
+          </div>
+          <div class="manual-controls">
+            <div class="manual-group">
+              <p class="manual-group-title" data-i18n="ritual.manual.color">Color</p>
+              <label class="manual-slider">
+                <span data-i18n="ritual.manual.hue1">Color principal</span>
+                <input type="range" id="manual-hue1" class="hue-rail" min="0" max="100" value="50">
+              </label>
+              <label class="manual-slider">
+                <span data-i18n="ritual.manual.hue2">Color secundario</span>
+                <input type="range" id="manual-hue2" class="hue-rail" min="0" max="100" value="55">
+              </label>
+              <label class="manual-slider">
+                <span data-i18n="ritual.manual.glow">Brillo</span>
+                <input type="range" id="manual-glow" class="glow-rail" min="0" max="100" value="60">
+              </label>
+            </div>
+            <div class="manual-group">
+              <p class="manual-group-title" data-i18n="ritual.manual.shape">Forma</p>
+              <label class="manual-slider"><span data-i18n="ritual.manual.size">Tamaño</span><input type="range" id="manual-size" min="0" max="100" value="50"></label>
+              <label class="manual-slider"><span data-i18n="ritual.manual.lobes">Lóbulos</span><input type="range" id="manual-lobes" min="0" max="100" value="50"></label>
+              <label class="manual-slider"><span data-i18n="ritual.manual.spike">Espinas</span><input type="range" id="manual-spike" min="0" max="100" value="30"></label>
+              <label class="manual-slider"><span data-i18n="ritual.manual.flow">Fluidez</span><input type="range" id="manual-flow" min="0" max="100" value="60"></label>
+              <label class="manual-slider"><span data-i18n="ritual.manual.tentacles">Cilios</span><input type="range" id="manual-tentacles" min="0" max="100" value="40"></label>
+              <label class="manual-slider"><span data-i18n="ritual.manual.eyes">Ojos</span><input type="range" id="manual-eyes" min="0" max="100" value="40"></label>
+            </div>
+          </div>
+        </div>
+        <button type="button" id="btn-manual-confirm" class="btn btn-primary btn-small design-confirm" data-i18n="ritual.manual.confirm">Confirmar diseño →</button>
       </div>
     </div>
 
