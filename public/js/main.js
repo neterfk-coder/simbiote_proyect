@@ -609,9 +609,12 @@ const App = (() => {
       };
     });
   }
+  let suggestedName = "";
   $("#born-name").addEventListener("input", e => {
-    if (birthPreviewCreature) birthPreviewCreature.name = e.target.value.trim() || birthPreviewCreature.name;
-    if (myCreature) myCreature.name = e.target.value.trim() || myCreature.name;
+    // lo que el usuario escribe manda; si borra todo, vuelve el sugerido
+    const chosen = e.target.value.trim() || suggestedName;
+    if (birthPreviewCreature) birthPreviewCreature.name = chosen;
+    if (myCreature) myCreature.name = chosen;
   });
 
   function birth(genome) {
@@ -622,7 +625,11 @@ const App = (() => {
       cosmetics: Wallet.equippedItems(),
       portrait: localStorage.getItem(PORTRAIT_KEY)
     });
-    $("#born-name").value = myCreature.name;
+    // el campo arranca vacío con el sugerido como placeholder: escribir el
+    // propio es la acción natural, y dejarlo vacío conserva la sugerencia
+    suggestedName = myCreature.name;
+    $("#born-name").value = "";
+    $("#born-name").placeholder = suggestedName;
     $("#born-epithet").textContent = I18n.t("ritual.birth.epithetPrefix", { epithet: DNA.epithet(genome) });
     // clon visual para la vista previa: mismo genoma, el nombre se refleja al tipear
     birthPreviewCreature = new Creature(genome.slice(), { x: 0, y: 0, name: myCreature.name });

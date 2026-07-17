@@ -101,10 +101,13 @@ const DNA = (() => {
     return list[Math.min(list.length - 1, Math.floor(gene * list.length))];
   }
 
-  function nameOf(g) {
-    const n = pick(CONS, g[G.HUE1]) + pick(VOW, g[G.PITCH]) +
-              pick(CONS, g[G.SPEED]) + pick(VOW, g[G.SIZE]) +
-              pick(TAIL, g[G.GLOW]);
+  /* jitter > 0 mezcla azar en la pronunciación: evita que criaturas de
+     genomas parecidos (voz en silencio, avatares) repitan nombre. */
+  function nameOf(g, jitter = 0) {
+    const j = v => jitter ? clamp01(v + (rnd() * 2 - 1) * jitter) : v;
+    const n = pick(CONS, j(g[G.HUE1])) + pick(VOW, j(g[G.PITCH])) +
+              pick(CONS, j(g[G.SPEED])) + pick(VOW, j(g[G.SIZE])) +
+              pick(TAIL, j(g[G.GLOW]));
     return n.charAt(0).toUpperCase() + n.slice(1);
   }
 

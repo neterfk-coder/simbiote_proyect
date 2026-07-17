@@ -324,6 +324,7 @@ const I18n = (() => {
       "celebrate.codexFounders": "Los ocho fundadores viven en tu códice.",
 
       "ritual.birth.nameAria": "Nombre de tu criatura",
+      "ritual.birth.nameLabel": "✏️ Escribí su nombre — el que vos quieras",
 
       "hud.shopAria": "Abrir la tienda", "hud.shopTitle": "Tienda",
       "hud.leaderboardAria": "Abrir el ranking", "hud.leaderboardTitle": "Ranking en vivo",
@@ -777,6 +778,7 @@ const I18n = (() => {
       "celebrate.codexFounders": "All eight founders live in your codex.",
 
       "ritual.birth.nameAria": "Your creature's name",
+      "ritual.birth.nameLabel": "✏️ Type its name — any name you want",
 
       "hud.shopAria": "Open the shop", "hud.shopTitle": "Shop",
       "hud.leaderboardAria": "Open the leaderboard", "hud.leaderboardTitle": "Live leaderboard",
