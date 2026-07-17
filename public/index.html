@@ -99,10 +99,11 @@
       </div>
 
       <div class="design-panel is-active" data-design-panel="draw">
-        <p class="ritual-hint design-subhint" data-i18n="ritual.stroke.hint">Dibuja una sola línea, la que quieras.<br>Al soltar, tu trazo se convertirá en su anatomía.</p>
+        <p class="ritual-hint design-subhint" data-i18n="ritual.stroke.hint">Dibujá con total libertad: una línea o muchas.<br>Cuando te guste, confirmá y tu dibujo será su anatomía.</p>
         <div class="capture-frame">
           <canvas id="stroke-canvas"></canvas>
         </div>
+        <button type="button" id="btn-stroke-confirm" class="btn btn-primary btn-small design-confirm hidden" data-i18n="ritual.stroke.confirm">Confirmar dibujo →</button>
       </div>
 
       <div class="design-panel" data-design-panel="avatar">
@@ -156,6 +157,7 @@
     <!-- Nacimiento -->
     <div class="ritual-step" data-step="5">
       <p class="eyebrow" data-i18n="ritual.birth.eyebrow">Ha nacido</p>
+      <div id="birth-preview" class="birth-preview" aria-hidden="true"></div>
       <input id="born-name" class="born-name born-name-input" maxlength="20" autocomplete="off" data-i18n-aria="ritual.birth.nameAria" aria-label="Nombre de tu criatura">
       <p id="born-epithet" class="born-epithet">—</p>
       <label class="creator-field">
@@ -210,6 +212,31 @@
     <button type="submit" class="btn btn-primary btn-small" data-i18n="riddle.submit">Responder</button>
   </form>
 </aside>
+
+<!-- Modal: ruleta de premios diaria -->
+<aside id="panel-wheel" class="glass courtship-modal wheel-modal" aria-label="Ruleta de premios">
+  <div class="panel-head">
+    <h3 class="panel-title" data-i18n="wheel.title">Ruleta del abismo</h3>
+    <button id="wheel-close" class="icon-btn" data-i18n-aria="wheel.closeAria" aria-label="Cerrar ruleta">✕</button>
+  </div>
+  <p class="panel-sub" data-i18n="wheel.sub">Un giro gratis por día. La fortuna del abismo decide.</p>
+  <div class="wheel-stage">
+    <div class="wheel-pointer" aria-hidden="true"></div>
+    <div id="wheel-disc" class="wheel-disc" aria-hidden="true"></div>
+    <div class="wheel-hub" aria-hidden="true">💠</div>
+  </div>
+  <p id="wheel-result" class="wheel-result hidden">—</p>
+  <button type="button" id="btn-wheel-spin" class="btn btn-primary wheel-spin-btn" data-i18n="wheel.spin">¡Girar!</button>
+</aside>
+
+<!-- Overlay: racha diaria -->
+<div id="streak-overlay" class="streak-overlay hidden" aria-hidden="true">
+  <div class="streak-card">
+    <span class="streak-flame" aria-hidden="true">🔥</span>
+    <p id="streak-overlay-text" class="streak-overlay-text">—</p>
+    <p id="streak-overlay-sub" class="streak-overlay-sub">—</p>
+  </div>
+</div>
 
 <!-- Modal: encuentro con una criatura (encounterCreature) -->
 <aside id="panel-encounter" class="glass courtship-modal encounter-modal" aria-label="Encuentro">
@@ -281,6 +308,9 @@
     <button id="btn-account" class="diamond-pill" data-i18n-aria="hud.accountAria" data-i18n-title="hud.accountTitle" aria-label="Tu cuenta" title="Tu cuenta">
       <span aria-hidden="true">💎</span><strong id="diamond-count">0</strong>
     </button>
+    <button id="streak-pill" class="streak-hud-pill hidden" data-i18n-aria="streak.pillAria" data-i18n-title="streak.pillTitle" aria-label="Tu racha diaria" title="Tu racha diaria">
+      <span aria-hidden="true">🔥</span><strong id="streak-count">0</strong>
+    </button>
     <button id="btn-hud-more" class="icon-btn hud-more-toggle" aria-label="Más opciones" aria-expanded="false">
       <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg>
     </button>
@@ -296,6 +326,10 @@
       <button id="btn-codex" class="icon-btn" data-i18n-aria="hud.codexAria" data-i18n-title="hud.codexTitle" aria-label="Abrir el códice" title="Códice">
         <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 8h6"/><path d="M9 12h6"/><path d="M9 16h3"/></svg>
         <span class="hud-secondary-label" data-i18n="hud.codexTitle">Códice</span>
+      </button>
+      <button id="btn-wheel" class="icon-btn" data-i18n-aria="hud.wheelAria" data-i18n-title="hud.wheelTitle" aria-label="Abrir la ruleta" title="Ruleta del abismo">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18"/><path d="M3 12h18"/><path d="m5.6 5.6 12.8 12.8"/><path d="m18.4 5.6-12.8 12.8"/></svg>
+        <span class="hud-secondary-label" data-i18n="hud.wheelTitle">Ruleta del abismo</span>
       </button>
       <button id="btn-leaderboard" class="icon-btn" data-i18n-aria="hud.leaderboardAria" data-i18n-title="hud.leaderboardTitle" aria-label="Abrir el ranking" title="Ranking en vivo">
         <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v6a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 5"/><path d="M17 6h3a3 3 0 0 1-3 5"/></svg>
@@ -518,6 +552,8 @@
 <script src="js/encounter.js"></script>
 <script src="js/missions.js"></script>
 <script src="js/ladder.js"></script>
+<script src="js/wheel.js"></script>
+<script src="js/streak.js"></script>
 <script src="js/shop.js"></script>
 <script src="js/leaderboard.js"></script>
 <script src="js/certificate.js"></script>

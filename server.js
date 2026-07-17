@@ -149,8 +149,15 @@ const MISSIONS = {
   collector: 35,
   feedmaster: 50, toyparty: 45, catch12: 60, epicCatch: 55, eventTriathlon: 60,
   centenarian: 75, rich300: 65, founderChild: 80, dynasty4: 90, codexFounders: 85,
-  chest1: 30, chest2: 50, chest3: 75, chest4: 100
+  chest1: 30, chest2: 50, chest3: 75, chest4: 100,
+  streak2: 15, streak3: 25, streak5: 40, streak7: 60, streak14: 100
 };
+/* Ruleta diaria: pesos del sorteo (el cliente solo anima el resultado) */
+const WHEEL_PRIZES = [
+  { amount: 5, weight: 20 }, { amount: 8, weight: 18 }, { amount: 12, weight: 16 },
+  { amount: 18, weight: 14 }, { amount: 25, weight: 12 }, { amount: 40, weight: 9 },
+  { amount: 60, weight: 7 }, { amount: 100, weight: 4 }
+];
 const SHOP_ITEMS = {
   food_spark: 8, food_feast: 25,
   gift_hearts: 12, gift_confetti: 15,
@@ -201,6 +208,28 @@ app.post('/api/missions/claim', async (req, res) => {
   const diamonds = wallet.diamonds + reward;
   await supabase.from('wallets').update({ diamonds, updated_at: new Date().toISOString() }).eq('user_id', user.id);
   res.json({ diamonds, reward });
+});
+
+/* Ruleta diaria: un giro por usuario y por día. El candado es la clave
+   primaria de missions_done con una clave fechada (wheel_YYYY-MM-DD):
+   sin columnas nuevas y a prueba de dobles giros concurrentes. */
+app.post('/api/wheel/spin', async (req, res) => {
+  const user = await userFromAuth(req);
+  if (!user) return res.status(supabase ? 401 : 503).json({ error: supabase ? 'No autenticado.' : 'Cuentas no configuradas.' });
+
+  const key = 'wheel_' + new Date().toISOString().slice(0, 10);
+  const { error: dupErr } = await supabase.from('missions_done').insert({ user_id: user.id, mission_key: key });
+  if (dupErr) return res.json({ alreadySpun: true });
+
+  const total = WHEEL_PRIZES.reduce((s, p) => s + p.weight, 0);
+  let roll = Math.random() * total;
+  let prize = WHEEL_PRIZES[0];
+  for (const p of WHEEL_PRIZES) { roll -= p.weight; if (roll <= 0) { prize = p; break; } }
+
+  const wallet = await getOrCreateWallet(user.id);
+  const diamonds = wallet.diamonds + prize.amount;
+  await supabase.from('wallets').update({ diamonds, updated_at: new Date().toISOString() }).eq('user_id', user.id);
+  res.json({ amount: prize.amount, diamonds });
 });
 
 app.post('/api/shop/purchase', async (req, res) => {

@@ -21,8 +21,16 @@ const Wallet = (() => {
     collector: 35,
     feedmaster: 50, toyparty: 45, catch12: 60, epicCatch: 55, eventTriathlon: 60,
     centenarian: 75, rich300: 65, founderChild: 80, dynasty4: 90, codexFounders: 85,
-    chest1: 30, chest2: 50, chest3: 75, chest4: 100
+    chest1: 30, chest2: 50, chest3: 75, chest4: 100,
+    streak2: 15, streak3: 25, streak5: 40, streak7: 60, streak14: 100
   };
+  /* Espejo de WHEEL_PRIZES de server.js: solo se usa en modo invitado */
+  const WHEEL_PRIZES = [
+    { amount: 5, weight: 20 }, { amount: 8, weight: 18 }, { amount: 12, weight: 16 },
+    { amount: 18, weight: 14 }, { amount: 25, weight: 12 }, { amount: 40, weight: 9 },
+    { amount: 60, weight: 7 }, { amount: 100, weight: 4 }
+  ];
+  const WHEEL_KEY = "simbionte_wheel_last";
   const SHOP_ITEMS = {
     food_spark: 8, food_feast: 25,
     gift_hearts: 12, gift_confetti: 15,
@@ -131,6 +139,30 @@ const Wallet = (() => {
     return equipLocal(itemId, equipped);
   }
 
+  /* ---------- Ruleta diaria ---------- */
+  function wheelSpunToday() { return localStorage.getItem(WHEEL_KEY) === new Date().toISOString().slice(0, 10); }
+  function markWheelSpun() { localStorage.setItem(WHEEL_KEY, new Date().toISOString().slice(0, 10)); }
+  async function spinWheel() {
+    if (wheelSpunToday()) return { alreadySpun: true };
+    if (Auth.available && Auth.user) {
+      const data = await api("/api/wheel/spin", {});
+      if (data.error) return null;
+      if (data.alreadySpun) { markWheelSpun(); return { alreadySpun: true }; }
+      markWheelSpun();
+      state.diamonds = data.diamonds; emit();
+      return { amount: data.amount, diamonds: data.diamonds };
+    }
+    // invitado: sorteo local con los mismos pesos
+    const total = WHEEL_PRIZES.reduce((s, p) => s + p.weight, 0);
+    let roll = Math.random() * total;
+    let prize = WHEEL_PRIZES[0];
+    for (const p of WHEEL_PRIZES) { roll -= p.weight; if (roll <= 0) { prize = p; break; } }
+    markWheelSpun();
+    state.diamonds += prize.amount;
+    saveLocal(); emit();
+    return { amount: prize.amount, diamonds: state.diamonds };
+  }
+
   function isOwned(itemId) { return state.inventory.some(it => it.itemId === itemId); }
   function isEquipped(itemId) { return state.inventory.some(it => it.itemId === itemId && it.equipped); }
   function equippedItems() { return state.inventory.filter(it => it.equipped).map(it => it.itemId); }
@@ -138,6 +170,7 @@ const Wallet = (() => {
   return {
     MISSIONS, SHOP_ITEMS, WEAR_SLOTS,
     claimMission, purchase, equip, isOwned, isEquipped, equippedItems,
+    spinWheel, wheelSpunToday,
     onChange(fn) { listeners.push(fn); },
     get diamonds() { return state.diamonds; },
     get inventory() { return state.inventory; },

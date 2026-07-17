@@ -47,8 +47,10 @@ const Capture = (() => {
 
   /* Sesión de captura sobre un canvas.
      mode "gesture": registra todo movimiento del puntero.
-     mode "stroke" : registra solo mientras se presiona.       */
-  function session(canvas, mode, { seconds = null, onDone }) {
+     mode "stroke" : registra solo mientras se presiona.
+     multi: true   → no termina al soltar; se pueden dibujar varios
+     trazos y el cierre lo decide quien llama (vía .finish()).      */
+  function session(canvas, mode, { seconds = null, multi = false, onDone, onStroke = null }) {
     const ctx = canvas.getContext("2d");
     const dpr = window.devicePixelRatio || 1;
     const rect = () => canvas.getBoundingClientRect();
@@ -84,7 +86,10 @@ const Capture = (() => {
     }
     function down(e) { if (mode === "stroke") drawing = true; add(e); }
     function up() {
-      if (mode === "stroke" && drawing && points.length > 8) finish();
+      if (mode === "stroke" && drawing && points.length > 8) {
+        if (multi) { if (onStroke) onStroke(points.length); }
+        else finish();
+      }
       if (mode === "stroke") drawing = false;
     }
     function finish() {

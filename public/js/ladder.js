@@ -27,7 +27,7 @@ const Ladder = (() => {
   /* Métricas: cada una devuelve el valor actual (muchas se leen en vivo
      de Missions/Codex/Wallet para no duplicar registros). */
   const METRICS = {
-    missionsDone: () => (Wallet.missionsDone || []).length,
+    missionsDone: () => Missions.doneCount(), // filtrado por catálogo: no cuenta cofres, rachas ni giros de ruleta
     births: () => S.births,
     feeds: () => Missions.progress.feedsTotal,
     maxAge: () => Math.floor(S.maxAge),

@@ -837,6 +837,86 @@ button { font-family: var(--body); cursor: pointer; color: inherit; background: 
   60% { transform: scale(1) translateX(-5px); } 80% { transform: scale(1) translateX(5px); }
 }
 
+/* ═══ Ruleta del abismo ═══ */
+.wheel-modal { width: min(380px, calc(100vw - 32px)); z-index: 46; }
+.wheel-stage { position: relative; width: 240px; height: 240px; margin: 18px auto 14px; }
+.wheel-disc {
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 2px solid var(--line-strong);
+  box-shadow: inset 0 0 40px rgba(2,1,8,.5), 0 0 40px rgba(62,224,193,.1);
+  will-change: transform;
+}
+.wheel-label {
+  position: absolute; top: 50%; left: 50%;
+  width: 44px; margin: -11px 0 0 -22px;
+  text-align: center; font-size: .8rem; font-weight: 700; color: var(--fog);
+  text-shadow: 0 1px 6px rgba(0,0,0,.7);
+}
+.wheel-pointer {
+  position: absolute; top: -8px; left: 50%; transform: translateX(-50%); z-index: 2;
+  width: 0; height: 0;
+  border-left: 11px solid transparent; border-right: 11px solid transparent;
+  border-top: 18px solid var(--gold);
+  filter: drop-shadow(0 0 8px rgba(236,209,147,.7));
+}
+.wheel-hub {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2;
+  width: 54px; height: 54px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 1.4rem;
+  background: var(--panel-solid); border: 1px solid var(--line-strong);
+  box-shadow: 0 0 20px rgba(62,224,193,.25);
+}
+.wheel-spin-btn { width: 100%; }
+.wheel-spin-btn:disabled { opacity: .5; cursor: default; transform: none !important; }
+.wheel-result { margin-bottom: 12px; font-weight: 700; font-size: .95rem; }
+.wheel-result.wheel-win { color: var(--gold); animation: celebPop .5s var(--ease) both; }
+.wheel-result.wheel-wait { color: var(--fog-dim); font-weight: 500; font-size: .84rem; }
+
+/* ═══ Racha diaria ═══ */
+.streak-hud-pill {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 13px; border-radius: 999px;
+  border: 1px solid rgba(255,140,60,.3); background: rgba(255,140,60,.08);
+  color: #ffb37a; font-size: .84rem; font-weight: 700;
+  transition: transform .3s var(--ease), box-shadow .3s;
+}
+.streak-hud-pill:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(255,140,60,.25); }
+.streak-hud-pill.is-hot { animation: streakPulse 2.2s ease-in-out infinite; }
+@keyframes streakPulse { 50% { box-shadow: 0 0 18px rgba(255,140,60,.45); } }
+
+.streak-overlay {
+  position: fixed; inset: 0; z-index: 62;
+  display: grid; place-items: center; pointer-events: none;
+  background: radial-gradient(circle at 50% 45%, rgba(255,140,60,.14), transparent 55%);
+  opacity: 0; transition: opacity .5s var(--ease);
+}
+.streak-overlay.show { opacity: 1; }
+.streak-card { text-align: center; }
+.streak-flame {
+  display: block; font-size: 4.4rem; line-height: 1;
+  filter: drop-shadow(0 0 30px rgba(255,140,60,.8));
+  animation: flameDance 1s ease-in-out infinite alternate;
+}
+@keyframes flameDance {
+  from { transform: scale(1) rotate(-3deg); }
+  to { transform: scale(1.12) rotate(3deg); filter: drop-shadow(0 0 44px rgba(255,170,60,.9)); }
+}
+.streak-overlay-text {
+  font-family: var(--display); font-weight: 560; font-style: italic;
+  font-size: clamp(1.6rem, 4.5vw, 2.6rem); color: #fff; margin-top: 14px;
+  text-shadow: 0 0 34px rgba(255,140,60,.6);
+  animation: celebPop .6s var(--ease) both;
+}
+.streak-overlay-sub { font-size: .9rem; color: var(--gold); margin-top: 6px; animation: stepIn .6s var(--ease) .25s both; }
+
+/* ═══ Vista previa del nacimiento (nombre en tiempo real) ═══ */
+.birth-preview {
+  width: min(300px, 80%); height: 150px; margin: 6px auto 2px;
+  border-radius: 20px; overflow: hidden;
+  background: radial-gradient(circle at 50% 55%, rgba(62,224,193,.07), rgba(4,3,12,.35));
+  border: 1px solid var(--line);
+}
+
 /* ═══ Encuentro: mini-juego de puntería (encounterCreature) ═══ */
 .encounter-modal { width: min(360px, calc(100vw - 32px)); z-index: 46; }
 .encounter-bar-track {

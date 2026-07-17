@@ -328,7 +328,10 @@ const App = (() => {
 
   function startStroke() {
     const canvas = $("#stroke-canvas");
+    $("#btn-stroke-confirm").classList.add("hidden");
     const s = Capture.session(canvas, "stroke", {
+      multi: true, // dibujo libre: tantos trazos como quiera, confirma con el botón
+      onStroke() { $("#btn-stroke-confirm").classList.remove("hidden"); },
       onDone: features => {
         ritual.stroke = features || DEFAULT_STROKE;
         ritual.manual = null;
@@ -337,6 +340,10 @@ const App = (() => {
     });
     stepSessions.push(s);
   }
+  $("#btn-stroke-confirm").addEventListener("click", () => {
+    const s = stepSessions[stepSessions.length - 1];
+    if (s && s.finish) s.finish();
+  });
 
   function switchDesignTab(tab, force) {
     if (tab === activeDesignTab && !force) return;
@@ -578,7 +585,35 @@ const App = (() => {
     })();
   }
 
-  /* --- Paso 5: nacimiento --- */
+  /* --- Paso 5: nacimiento, con vista previa viva y nombre en tiempo real --- */
+  let birthPreviewP5 = null, birthPreviewCreature = null;
+  function ensureBirthPreview() {
+    if (birthPreviewP5) return;
+    const container = $("#birth-preview");
+    birthPreviewP5 = new p5(p => {
+      p.setup = () => {
+        const rect = container.getBoundingClientRect();
+        p.createCanvas(Math.max(220, rect.width), Math.max(150, rect.height)).parent(container);
+        p.colorMode(p.HSB, 360, 100, 100, 1);
+      };
+      p.draw = () => {
+        p.clear();
+        const c = birthPreviewCreature;
+        if (!c) return;
+        // nada suavemente en el centro de la vista previa
+        const t = p.millis() * 0.001;
+        c.x = p.width / 2 + Math.sin(t * 0.7) * 14;
+        c.y = p.height / 2 + 8 + Math.cos(t * 0.9) * 8;
+        c.vx = Math.cos(t * 0.7); c.vy = 0;
+        c.draw(p);
+      };
+    });
+  }
+  $("#born-name").addEventListener("input", e => {
+    if (birthPreviewCreature) birthPreviewCreature.name = e.target.value.trim() || birthPreviewCreature.name;
+    if (myCreature) myCreature.name = e.target.value.trim() || myCreature.name;
+  });
+
   function birth(genome) {
     myCreature = new Creature(genome, {
       x: (Math.random() - 0.5) * 300, y: (Math.random() - 0.5) * 300,
@@ -589,6 +624,11 @@ const App = (() => {
     });
     $("#born-name").value = myCreature.name;
     $("#born-epithet").textContent = I18n.t("ritual.birth.epithetPrefix", { epithet: DNA.epithet(genome) });
+    // clon visual para la vista previa: mismo genoma, el nombre se refleja al tipear
+    birthPreviewCreature = new Creature(genome.slice(), { x: 0, y: 0, name: myCreature.name });
+    birthPreviewCreature.age = 6;
+    birthPreviewCreature.maxAge = Infinity;
+    ensureBirthPreview();
     setStep(5);
     AudioRitual.birthChord(genome);
   }
@@ -915,6 +955,21 @@ const App = (() => {
       AudioRitual.celebrate();
     }
   });
+
+  /* ══════════ 5c quater. Ruleta diaria y racha ══════════ */
+  Wheel.init({
+    onPrize(amount) {
+      toast(I18n.t("toast.wheelPrize", { amount }), "gold");
+      AudioRitual.celebrate();
+    }
+  });
+  $("#btn-wheel").addEventListener("click", () => Wheel.open());
+  Streak.init({
+    onMilestone(days, reward) {
+      toast(I18n.t("toast.streakReward", { days, amount: reward }), "gold");
+      AudioRitual.celebrate();
+    }
+  });
   $$(".ms-tab").forEach(tab => tab.addEventListener("click", () => {
     $$(".ms-tab").forEach(t => t.classList.toggle("is-active", t === tab));
     const showLadder = tab.dataset.msTab === "ladder";
@@ -1085,6 +1140,7 @@ const App = (() => {
     if (e.key !== "Escape") return;
     $$(".panel").forEach(p => p.classList.remove("is-open"));
     $("#panel-riddle").classList.remove("is-open");
+    Wheel.close();
     Encounter.close();
     $("#screen-codex").classList.remove("is-active");
     if (Leaderboard.isOpen) Leaderboard.close();
