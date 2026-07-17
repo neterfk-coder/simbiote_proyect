@@ -226,7 +226,7 @@ const I18n = (() => {
 
       "codex.title": "Códice de criaturas",
       "codex.closeAria": "Cerrar códice",
-      "codex.count": "{count} criaturas registradas",
+      "codex.count": "Criaturas registradas: {count}",
       "codex.empty": "Todavía no atrapaste ninguna criatura. Tocá una en el mundo e intentá el encuentro.",
       "codex.rarity.common": "Común",
       "codex.rarity.rare": "Rara",
@@ -597,7 +597,7 @@ const I18n = (() => {
 
       "codex.title": "Creature codex",
       "codex.closeAria": "Close codex",
-      "codex.count": "{count} creatures registered",
+      "codex.count": "Creatures registered: {count}",
       "codex.empty": "You haven't caught any creature yet. Tap one in the world and try the encounter.",
       "codex.rarity.common": "Common",
       "codex.rarity.rare": "Rare",
