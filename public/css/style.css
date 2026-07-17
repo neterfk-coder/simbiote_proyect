@@ -714,6 +714,59 @@ button { font-family: var(--body); cursor: pointer; color: inherit; background: 
   60% { transform: scale(1) translateX(-5px); } 80% { transform: scale(1) translateX(5px); }
 }
 
+/* ═══ Encuentro: mini-juego de puntería (encounterCreature) ═══ */
+.encounter-modal { width: min(360px, calc(100vw - 32px)); z-index: 46; }
+.encounter-bar-track {
+  position: relative; height: 34px; border-radius: 17px; margin: 20px 0 18px;
+  background: rgba(255,255,255,.05); border: 1px solid var(--line); overflow: hidden;
+}
+.encounter-zone {
+  position: absolute; top: 0; bottom: 0; left: 0; width: 20%;
+  background: linear-gradient(180deg, rgba(232,200,119,.55), rgba(232,200,119,.3));
+  box-shadow: inset 0 0 0 1px rgba(232,200,119,.7);
+}
+.encounter-marker {
+  position: absolute; top: -3px; bottom: -3px; left: 0; width: 4px; border-radius: 2px;
+  background: #fff; box-shadow: 0 0 12px rgba(255,255,255,.9), 0 0 24px rgba(7,237,196,.6);
+  transform: translateX(-2px);
+}
+.encounter-stop-btn { width: 100%; }
+.encounter-result { margin-top: 14px; font-weight: 700; font-size: .92rem; min-height: 1.3em; }
+.encounter-result.encounter-success { color: var(--gold); }
+.encounter-result.encounter-fail { color: var(--coral); }
+
+/* ═══ Códice: cartas coleccionables ═══ */
+.codex-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px;
+  overflow-y: auto; padding: 4px 4px 4px 0;
+}
+.codex-card {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 14px 10px 12px; border-radius: 18px;
+  background: rgba(255,255,255,.03); border: 1px solid var(--line);
+  transition: transform .3s var(--ease), box-shadow .3s;
+}
+.codex-card:hover { transform: translateY(-4px); }
+.codex-card canvas { width: 100%; max-width: 118px; height: auto; }
+.codex-card-name { font-weight: 700; font-size: .86rem; color: #fff; }
+.codex-card-meta { font-size: .68rem; color: var(--fog-dim); }
+.codex-rarity {
+  font-size: .6rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  padding: 3px 10px; border-radius: 999px;
+}
+.codex-card[data-rarity="common"] { border-color: var(--line); }
+.codex-card[data-rarity="common"] .codex-rarity { color: var(--fog-dim); background: rgba(255,255,255,.06); }
+.codex-card[data-rarity="rare"] { border-color: rgba(7,237,196,.35); box-shadow: 0 0 20px rgba(7,237,196,.08); }
+.codex-card[data-rarity="rare"] .codex-rarity { color: var(--cyan); background: rgba(7,237,196,.1); }
+.codex-card[data-rarity="epic"] { border-color: rgba(255,93,143,.4); box-shadow: 0 0 24px rgba(255,93,143,.12); }
+.codex-card[data-rarity="epic"] .codex-rarity { color: var(--coral); background: rgba(255,93,143,.12); }
+.codex-card[data-rarity="legendary"] {
+  border-color: rgba(232,200,119,.5); background: linear-gradient(160deg, rgba(232,200,119,.08), rgba(255,255,255,.02));
+  box-shadow: 0 0 28px rgba(232,200,119,.16);
+}
+.codex-card[data-rarity="legendary"] .codex-rarity { color: var(--gold); background: rgba(232,200,119,.14); }
+.codex-empty { grid-column: 1 / -1; text-align: center; color: var(--fog-dim); padding: 40px 0; font-size: .9rem; }
+
 /* ═══ Toasts ═══ */
 .toasts { position: fixed; top: 78px; left: 50%; transform: translateX(-50%); z-index: 40; display: grid; gap: 10px; pointer-events: none; }
 .toast {
@@ -774,6 +827,7 @@ button { font-family: var(--body); cursor: pointer; color: inherit; background: 
   .lb-screen, .account-screen, .ms-screen { max-height: calc(100vh - 100px); }
   .ms-screen { padding: 22px 16px 16px; }
   .ms-grid { grid-template-columns: 1fr; }
+  .codex-grid { grid-template-columns: repeat(2, 1fr); }
 
   /* Diseño de la criatura: pila vertical en pantallas angostas */
   .design-tab { font-size: .72rem; padding: 8px 4px; }

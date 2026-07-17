@@ -197,6 +197,33 @@
   </form>
 </aside>
 
+<!-- Modal: encuentro con una criatura (encounterCreature) -->
+<aside id="panel-encounter" class="glass courtship-modal encounter-modal" aria-label="Encuentro">
+  <div class="panel-head">
+    <h3 id="encounter-name" class="panel-title">—</h3>
+    <button id="encounter-close" class="icon-btn" data-i18n-aria="encounter.closeAria" aria-label="Cerrar encuentro">✕</button>
+  </div>
+  <p class="panel-sub" data-i18n="encounter.hint">Tocá "¡Ahora!" justo cuando el indicador esté en la zona dorada.</p>
+  <div class="encounter-bar-track">
+    <div id="encounter-zone" class="encounter-zone"></div>
+    <div id="encounter-marker" class="encounter-marker"></div>
+  </div>
+  <button type="button" id="encounter-stop-btn" class="btn btn-primary encounter-stop-btn" data-i18n="encounter.stop">¡Ahora!</button>
+  <p id="encounter-result" class="encounter-result hidden">—</p>
+</aside>
+
+<!-- ═══ PANTALLA: CÓDICE (colección de encuentros) ═══ -->
+<section id="screen-codex" class="screen ms-screen-outer">
+  <div class="ms-screen glass">
+    <div class="panel-head">
+      <h2 class="lb-title" data-i18n="codex.title">Códice de criaturas</h2>
+      <button id="codex-close" class="icon-btn" data-i18n-aria="codex.closeAria" aria-label="Cerrar códice">✕</button>
+    </div>
+    <p id="codex-count" class="ms-sub">—</p>
+    <div id="codex-grid" class="codex-grid"></div>
+  </div>
+</section>
+
 <!-- ═══ PANTALLA: RANKING EN VIVO ═══ -->
 <section id="screen-leaderboard" class="screen lb-screen-outer">
   <div class="lb-screen glass">
@@ -251,6 +278,10 @@
       <button id="btn-missions" class="icon-btn" data-i18n-aria="hud.missionsAria" data-i18n-title="hud.missionsTitle" aria-label="Abrir las misiones" title="Misiones">
         <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg>
         <span class="hud-secondary-label" data-i18n="hud.missionsTitle">Misiones</span>
+      </button>
+      <button id="btn-codex" class="icon-btn" data-i18n-aria="hud.codexAria" data-i18n-title="hud.codexTitle" aria-label="Abrir el códice" title="Códice">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 8h6"/><path d="M9 12h6"/><path d="M9 16h3"/></svg>
+        <span class="hud-secondary-label" data-i18n="hud.codexTitle">Códice</span>
       </button>
       <button id="btn-leaderboard" class="icon-btn" data-i18n-aria="hud.leaderboardAria" data-i18n-title="hud.leaderboardTitle" aria-label="Abrir el ranking" title="Ranking en vivo">
         <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v6a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 5"/><path d="M17 6h3a3 3 0 0 1-3 5"/></svg>
@@ -469,6 +500,8 @@
 <script src="js/auth.js"></script>
 <script src="js/wallet.js"></script>
 <script src="js/courtship.js"></script>
+<script src="js/codex.js"></script>
+<script src="js/encounter.js"></script>
 <script src="js/missions.js"></script>
 <script src="js/shop.js"></script>
 <script src="js/leaderboard.js"></script>

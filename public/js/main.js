@@ -607,6 +607,12 @@ const App = (() => {
     const panel = $("#panel-inspect");
     if (!target) { panel.classList.remove("is-open"); return; }
 
+    // primer contacto con una criatura ajena: encuentro (mini-juego) en vez de solo inspeccionar
+    if (!target.mine && !Codex.has(target.id)) {
+      if (Encounter.attempt(target)) return;
+      // en enfriamiento tras un intento fallido reciente: cae al inspeccionar normal
+    }
+
     // tocar una criatura también la golpea (hitCreature): los fundadores son inmunes
     const hitInfo = target.hit();
     if (hitInfo.lethal) {
@@ -854,6 +860,51 @@ const App = (() => {
   });
   $("#btn-missions").addEventListener("click", () => Missions.open());
 
+  /* ══════════ 5c ter. Encuentros y códice (encounterCreature) ══════════ */
+  Encounter.init({
+    onCaught(target, entry) {
+      World.burstAt(target.x, target.y, entry.rarity === "legendary" ? 46 : 200, 34);
+      toast(I18n.t("toast.codexNew", { name: target.name }), "gold");
+      if (target.permanent) Missions.notify("founderSeen", target.name);
+      Missions.notify("creatureCaught");
+    },
+    onMissed(target) { toast(I18n.t("toast.encounterMissed", { name: target.name }), "coral"); }
+  });
+  function renderCodexScreen() {
+    const entries = Codex.list();
+    $("#codex-count").textContent = I18n.t("codex.count", { count: entries.length });
+    const grid = $("#codex-grid");
+    grid.innerHTML = "";
+    if (!entries.length) {
+      grid.innerHTML = `<p class="codex-empty">${I18n.t("codex.empty")}</p>`;
+      return;
+    }
+    for (const entry of entries) {
+      const card = document.createElement("article");
+      card.className = "codex-card";
+      card.dataset.rarity = entry.rarity;
+      const canvas = document.createElement("canvas");
+      canvas.width = 132; canvas.height = 110;
+      card.appendChild(canvas);
+      const name = document.createElement("p");
+      name.className = "codex-card-name";
+      name.textContent = entry.name;
+      card.appendChild(name);
+      const meta = document.createElement("p");
+      meta.className = "codex-card-meta";
+      meta.textContent = entry.permanent ? I18n.t("codex.metaFounder") : I18n.t("codex.metaBy", { creator: entry.creator });
+      card.appendChild(meta);
+      const rarity = document.createElement("span");
+      rarity.className = "codex-rarity";
+      rarity.textContent = I18n.t("codex.rarity." + entry.rarity);
+      card.appendChild(rarity);
+      grid.appendChild(card);
+      drawAvatarPreview(canvas.getContext("2d"), canvas.width, canvas.height, entry.genome);
+    }
+  }
+  $("#btn-codex").addEventListener("click", () => { $("#screen-codex").classList.add("is-active"); renderCodexScreen(); });
+  $("#codex-close").addEventListener("click", () => $("#screen-codex").classList.remove("is-active"));
+
   /* ══════════ 5c bis. Ranking en vivo ══════════ */
   Leaderboard.init(() => myCreature?.id);
   $("#btn-leaderboard").addEventListener("click", () => Leaderboard.open());
@@ -971,6 +1022,8 @@ const App = (() => {
     if (e.key !== "Escape") return;
     $$(".panel").forEach(p => p.classList.remove("is-open"));
     $("#panel-riddle").classList.remove("is-open");
+    Encounter.close();
+    $("#screen-codex").classList.remove("is-active");
     if (Leaderboard.isOpen) Leaderboard.close();
     if (Missions.isOpen) Missions.close();
     if ($("#screen-account").classList.contains("is-active")) closeAccountScreen();

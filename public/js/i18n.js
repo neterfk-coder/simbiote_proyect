@@ -115,6 +115,8 @@ const I18n = (() => {
       "toast.creatureIsFossil": "Tu criatura ya es un fósil. Su historia sigue en la Crónica.",
       "toast.creatureShines": "{name} brilla para ti.",
       "toast.creatureDiedFromHits": "{name} no resistió tantos golpes y se desvaneció.",
+      "toast.codexNew": "¡Nueva carta! {name} se sumó a tu códice.",
+      "toast.encounterMissed": "{name} se escapó del encuentro.",
 
       "epithet.voiceHigh": "una voz aguda", "epithet.voiceLow": "una voz grave", "epithet.voiceCalm": "una voz serena",
       "epithet.shapeSpiky": "un trazo afilado", "epithet.shapeSpiral": "un trazo en espiral", "epithet.shapeWandering": "un trazo errante",
@@ -215,6 +217,29 @@ const I18n = (() => {
       "riddle.r2_1": "Somos veinte, invisibles, y decidimos su color, su forma y su canto.",
       "riddle.r2_2": "No florezco en el fondo del mar, brillo en tu bolsillo y me cambio por deseos.",
       "riddle.r2_3": "Soy más grande de lo que tus ojos abarcan de un vistazo, y solo el arrastre de tu mano me revela entero.",
+
+      "encounter.closeAria": "Cerrar encuentro",
+      "encounter.hint": "Tocá «¡Ahora!» justo cuando el indicador esté en la zona dorada.",
+      "encounter.stop": "¡Ahora!",
+      "encounter.success": "¡{name} quedó registrada en tu códice!",
+      "encounter.fail": "Se escapó… pero podés volver a intentarlo en unos segundos.",
+
+      "codex.title": "Códice de criaturas",
+      "codex.closeAria": "Cerrar códice",
+      "codex.count": "{count} criaturas registradas",
+      "codex.empty": "Todavía no atrapaste ninguna criatura. Tocá una en el mundo e intentá el encuentro.",
+      "codex.rarity.common": "Común",
+      "codex.rarity.rare": "Rara",
+      "codex.rarity.epic": "Épica",
+      "codex.rarity.legendary": "Legendaria",
+      "codex.metaFounder": "fundador del santuario",
+      "codex.metaBy": "de {creator}",
+      "hud.codexTitle": "Códice",
+      "hud.codexAria": "Abrir el códice",
+
+      "mission.collector": "El cazador de cartas",
+      "missionDesc.collector": "Atrapá 6 criaturas distintas en tu códice.",
+      "celebrate.collector": "Tu códice ya tiene 6 criaturas registradas.",
 
       "ritual.birth.nameAria": "Nombre de tu criatura",
 
@@ -461,6 +486,8 @@ const I18n = (() => {
       "toast.creatureIsFossil": "Your creature is already a fossil. Its story lives on in the Chronicle.",
       "toast.creatureShines": "{name} shines for you.",
       "toast.creatureDiedFromHits": "{name} couldn't take any more hits and faded away.",
+      "toast.codexNew": "New card! {name} was added to your codex.",
+      "toast.encounterMissed": "{name} got away from the encounter.",
 
       "epithet.voiceHigh": "a high voice", "epithet.voiceLow": "a low voice", "epithet.voiceCalm": "a calm voice",
       "epithet.shapeSpiky": "a jagged stroke", "epithet.shapeSpiral": "a spiral stroke", "epithet.shapeWandering": "a wandering stroke",
@@ -561,6 +588,29 @@ const I18n = (() => {
       "riddle.r2_1": "We are twenty, invisible, and we decide its color, its shape and its song.",
       "riddle.r2_2": "I do not bloom at the bottom of the sea, I shine in your pocket, and I am traded for wishes.",
       "riddle.r2_3": "I am bigger than your eyes can take in at a glance, and only the drag of your hand reveals me whole.",
+
+      "encounter.closeAria": "Close encounter",
+      "encounter.hint": "Tap \"Now!\" right when the marker is in the golden zone.",
+      "encounter.stop": "Now!",
+      "encounter.success": "{name} was added to your codex!",
+      "encounter.fail": "It got away… but you can try again in a few seconds.",
+
+      "codex.title": "Creature codex",
+      "codex.closeAria": "Close codex",
+      "codex.count": "{count} creatures registered",
+      "codex.empty": "You haven't caught any creature yet. Tap one in the world and try the encounter.",
+      "codex.rarity.common": "Common",
+      "codex.rarity.rare": "Rare",
+      "codex.rarity.epic": "Epic",
+      "codex.rarity.legendary": "Legendary",
+      "codex.metaFounder": "sanctuary founder",
+      "codex.metaBy": "by {creator}",
+      "hud.codexTitle": "Codex",
+      "hud.codexAria": "Open the codex",
+
+      "mission.collector": "The card hunter",
+      "missionDesc.collector": "Catch 6 different creatures in your codex.",
+      "celebrate.collector": "Your codex now has 6 creatures registered.",
 
       "ritual.birth.nameAria": "Your creature's name",
 

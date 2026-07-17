@@ -145,7 +145,8 @@ const MISSIONS = {
   firstBirth: 25, survive: 20, fed5: 15, firstChild: 40, firstCourtship: 10,
   toymaster: 30, founders: 35, explorer: 30, current: 40, blackout: 45, riddles: 50, rune: 60,
   dynasty: 70, riskyCourtship: 45, elder: 55, family: 50, swarm: 35,
-  goldrainBirth: 40, eventsWitnessed: 40, riddles2: 65, hoarder: 40, wardrobe: 45
+  goldrainBirth: 40, eventsWitnessed: 40, riddles2: 65, hoarder: 40, wardrobe: 45,
+  collector: 35
 };
 const SHOP_ITEMS = {
   food_spark: 8, food_feast: 25,

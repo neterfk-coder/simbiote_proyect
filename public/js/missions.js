@@ -40,7 +40,8 @@ const Missions = (() => {
     { key: "eventsWitnessed",icon: "👁️‍🗨️", tier: 3, reward: 40, target: 3 },
     { key: "riddles2",       icon: "🔮", tier: 4, reward: 65, target: 3, tag: "riddle" },
     { key: "hoarder",        icon: "💰", tier: 4, reward: 40, target: 150 },
-    { key: "wardrobe",       icon: "🎭", tier: 4, reward: 45, target: 4 }
+    { key: "wardrobe",       icon: "🎭", tier: 4, reward: 45, target: 4 },
+    { key: "collector",      icon: "🎴", tier: 2, reward: 35, target: 6 }
   ];
 
   /* ---------- Progreso persistente ---------- */
@@ -82,6 +83,7 @@ const Missions = (() => {
     else if (kind === "riskyCourtship") complete("riskyCourtship");
     else if (kind === "goldrainBirth") complete("goldrainBirth");
     else if (kind === "eventSeen") addUnique(progress.eventsSeen, value, "eventsWitnessed", 3);
+    else if (kind === "creatureCaught") { if (!isDone("collector") && Codex.count() >= 6) complete("collector"); render(); }
     else if (kind === "mine") registerLineage(value, 0);
     else if (kind === "courtship") onCourtship(value);
   }
@@ -207,6 +209,7 @@ const Missions = (() => {
     if (key === "eventsWitnessed") return progress.eventsSeen.length;
     if (key === "hoarder") return Math.min(150, Wallet.diamonds);
     if (key === "wardrobe") return wardrobeSlotsFilled();
+    if (key === "collector") return Math.min(6, Codex.count());
     return 0;
   }
 
