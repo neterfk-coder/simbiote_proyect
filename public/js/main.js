@@ -63,6 +63,7 @@ const App = (() => {
       Missions.drawRune(p);
       p.pop();
       Missions.tick(World, camera, myCreature);
+      Ladder.tick(myCreature);
       if (draggingToy) drawToyCursor(p, draggingToy);
       checkSurvivalMilestone();
     };
@@ -100,6 +101,7 @@ const App = (() => {
         const fed = World.releaseFood(draggingFood, w.x, w.y);
         if (fed) {
           toast(I18n.t("toast.fed", { name: fed.name }));
+          Missions.notify("fed");
           if (fed.feedCount >= 5) checkMilestone("fed5", fed);
         }
         draggingFood = null;
@@ -222,6 +224,8 @@ const App = (() => {
     else if (type === "star") World.heartsAt(x, y, target.hue1);
     toast(I18n.t("toast.toy." + type, { name: target.name }));
     Missions.notify("toyUsed", type);
+    Missions.notify("toyTarget", target.id);
+    Ladder.notify("toy");
   }
 
   function drawAbyss(p) {
@@ -506,20 +510,46 @@ const App = (() => {
     const W = canvas.width, H = canvas.height;
     const t0 = performance.now();
     const captions = [0, 1, 2, 3].map(i => I18n.t("ritual.dna.caption" + i));
+    const hue1 = genome[DNA.G.HUE1] * 360, hue2 = genome[DNA.G.HUE2] * 360;
+    // motas de luz que orbitan y son absorbidas por la hélice
+    const sparks = Array.from({ length: 26 }, () => ({
+      a: Math.random() * Math.PI * 2, r: 90 + Math.random() * 110,
+      s: 0.2 + Math.random() * 0.7, size: 1 + Math.random() * 2.2
+    }));
 
     (function frame() {
       const t = (performance.now() - t0) / 1000;
       ctx.clearRect(0, 0, W, H);
       $("#dna-caption").textContent = captions[Math.min(3, Math.floor(t / 0.9))];
-      // doble hélice de partículas que converge
       const converge = Math.min(1, t / 3.4);
+
+      // resplandor central que crece con la fusión
+      const glow = ctx.createRadialGradient(W / 2, H / 2, 6, W / 2, H / 2, 150);
+      glow.addColorStop(0, `hsla(${hue1}, 80%, 60%, ${0.05 + converge * 0.12})`);
+      glow.addColorStop(1, "transparent");
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, W, H);
+
+      // motas absorbidas en espiral hacia el centro
+      for (const sp of sparks) {
+        const pull = 1 - converge * 0.85;
+        const x = W / 2 + Math.cos(sp.a + t * sp.s) * sp.r * pull;
+        const y = H / 2 + Math.sin(sp.a + t * sp.s * 1.3) * sp.r * 0.55 * pull;
+        ctx.beginPath();
+        ctx.arc(x, y, sp.size, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${sp.a > Math.PI ? hue2 : hue1}, 70%, 75%, ${0.25 + converge * 0.45})`;
+        ctx.shadowBlur = 8; ctx.shadowColor = `hsla(${hue1}, 80%, 65%, .8)`;
+        ctx.fill();
+      }
+
+      // doble hélice de partículas que converge
       for (let i = 0; i < 46; i++) {
         const y = (i / 46) * H;
         const phase = i * 0.32 + t * 2.4;
         const spread = (1 - converge) * 90 + 26;
         [0, Math.PI].forEach((off, strand) => {
           const x = W / 2 + Math.sin(phase + off) * spread;
-          const hue = strand === 0 ? genome[DNA.G.HUE1] * 360 : genome[DNA.G.HUE2] * 360;
+          const hue = strand === 0 ? hue1 : hue2;
           const depth = (Math.cos(phase + off) + 1) / 2;
           ctx.beginPath();
           ctx.arc(x, y, 2 + depth * 3, 0, Math.PI * 2);
@@ -534,6 +564,15 @@ const App = (() => {
           ctx.strokeStyle = "rgba(201,200,221,.18)"; ctx.lineWidth = 1; ctx.stroke();
         }
       }
+
+      // destello final: la fusión se completa
+      if (t > 3.4) {
+        const flash = Math.min(1, (t - 3.4) / 0.4);
+        ctx.fillStyle = `hsla(${hue1}, 60%, 92%, ${Math.sin(flash * Math.PI) * 0.5})`;
+        ctx.fillRect(0, 0, W, H);
+      }
+      ctx.shadowBlur = 0;
+
       if (t < 3.8) requestAnimationFrame(frame);
       else birth(genome);
     })();
@@ -563,6 +602,7 @@ const App = (() => {
     Net.sendBirth(myCreature);
     Chronicle.record("birth", myCreature);
     Missions.notify("mine", myCreature.id);
+    Ladder.notify("birth");
     enterWorld();
     // tarjeta personal
     $("#my-name").textContent = myCreature.name;
@@ -657,6 +697,7 @@ const App = (() => {
     if (myCreature.mateCooldown > 0 || target.mateCooldown > 0) { toast(I18n.t("toast.courtshipCooldown"), "coral"); return; }
     const result = Courtship.attempt(myCreature, target);
     checkMilestone("firstCourtship", myCreature);
+    Ladder.notify("courtshipProposed");
     if (result.success) {
       toast(I18n.t("toast.courtshipSuccess", { a: myCreature.name, b: target.name, child: result.child.name }));
       if (wasLowOdds) Missions.notify("riskyCourtship");
@@ -738,7 +779,10 @@ const App = (() => {
   World.on("birth", c => { if (!c.mine) return; });
   World.on("courtship", e => {
     Chronicle.record("courtship", e);
-    if (e.a === myCreature || e.b === myCreature) checkMilestone("firstChild", myCreature);
+    if (e.a === myCreature || e.b === myCreature) {
+      checkMilestone("firstChild", myCreature);
+      Ladder.notify("offspring");
+    }
     Missions.notify("courtship", e);
   });
   World.on("death", c => { if (Math.random() < 0.5) Chronicle.record("death", c); });
@@ -759,8 +803,8 @@ const App = (() => {
   Shop.init({
     onUseItem(itemId) {
       if (!myCreature || myCreature.dead) { toast(I18n.t("shop.needCreature"), "coral"); return; }
-      if (itemId === "food_spark") myCreature.feed();
-      if (itemId === "food_feast") { myCreature.feed(); myCreature.feed(); myCreature.feed(); }
+      if (itemId === "food_spark") { myCreature.feed(); Missions.notify("fed"); }
+      if (itemId === "food_feast") { for (let i = 0; i < 3; i++) { myCreature.feed(); Missions.notify("fed"); } }
       if (itemId === "gift_hearts") World.heartsAt(myCreature.x, myCreature.y, myCreature.hue1);
       if (itemId === "gift_confetti") World.burstAt(myCreature.x, myCreature.y, Math.random() * 360, 40);
       if (myCreature.feedCount >= 5) checkMilestone("fed5", myCreature);
@@ -857,12 +901,27 @@ const App = (() => {
   Auth.onChange(() => { renderAccountPanel(); if (myCreature) myCreature.cosmetics = Wallet.equippedItems(); });
   setAuthMode("signin");
 
-  /* ══════════ 5c. Misiones ══════════ */
+  /* ══════════ 5c. Misiones y el Sendero ══════════ */
   Missions.init({
     onComplete: key => checkMilestone(key, myCreature || { name: "" }),
     getMyCreature: () => myCreature
   });
   $("#btn-missions").addEventListener("click", () => Missions.open());
+
+  Ladder.init({
+    onChest(chest, reward) {
+      toast(I18n.t("toast.chestOpened", { amount: reward }), "gold");
+      if (myCreature && !myCreature.dead) World.burstAt(myCreature.x, myCreature.y, 46, 60);
+      AudioRitual.celebrate();
+    }
+  });
+  $$(".ms-tab").forEach(tab => tab.addEventListener("click", () => {
+    $$(".ms-tab").forEach(t => t.classList.toggle("is-active", t === tab));
+    const showLadder = tab.dataset.msTab === "ladder";
+    $("#missions-view").classList.toggle("hidden", showLadder);
+    $("#ladder-view").classList.toggle("hidden", !showLadder);
+    if (showLadder) Ladder.render(); else Missions.render();
+  }));
 
   /* ══════════ 5c ter. Encuentros y códice (encounterCreature) ══════════ */
   Encounter.init({
@@ -870,7 +929,7 @@ const App = (() => {
       World.burstAt(target.x, target.y, entry.rarity === "legendary" ? 46 : 200, 34);
       toast(I18n.t("toast.codexNew", { name: target.name }), "gold");
       if (target.permanent) Missions.notify("founderSeen", target.name);
-      Missions.notify("creatureCaught");
+      Missions.notify("creatureCaught", entry);
     },
     onMissed(target) { toast(I18n.t("toast.encounterMissed", { name: target.name }), "coral"); }
   });

@@ -41,11 +41,23 @@ const Missions = (() => {
     { key: "riddles2",       icon: "🔮", tier: 4, reward: 65, target: 3, tag: "riddle" },
     { key: "hoarder",        icon: "💰", tier: 4, reward: 40, target: 150 },
     { key: "wardrobe",       icon: "🎭", tier: 4, reward: 45, target: 4 },
-    { key: "collector",      icon: "🎴", tier: 2, reward: 35, target: 6 }
+    { key: "collector",      icon: "🎴", tier: 2, reward: 35, target: 6 },
+
+    /* --- Las diez extremas: para quien ya domina el santuario --- */
+    { key: "feedmaster",     icon: "🍯", tier: 3, reward: 50, target: 15 },
+    { key: "toyparty",       icon: "🎪", tier: 3, reward: 45, target: 5 },
+    { key: "catch12",        icon: "🃏", tier: 3, reward: 60, target: 12 },
+    { key: "epicCatch",      icon: "🌠", tier: 3, reward: 55 },
+    { key: "eventTriathlon", icon: "⚡", tier: 4, reward: 60, tag: "danger" },
+    { key: "centenarian",    icon: "🐢", tier: 4, reward: 75, target: 300 },
+    { key: "rich300",        icon: "🏦", tier: 4, reward: 65, target: 300 },
+    { key: "founderChild",   icon: "🪽", tier: 4, reward: 80, tag: "legend" },
+    { key: "dynasty4",       icon: "🏛️", tier: 4, reward: 90, tag: "legend" },
+    { key: "codexFounders",  icon: "📜", tier: 4, reward: 85, target: 8, tag: "legend" }
   ];
 
   /* ---------- Progreso persistente ---------- */
-  const DEFAULT_PROGRESS = { corners: [], founders: [], toys: [], riddle: 0, riddle2: 0, lineage: {}, eventsSeen: [] };
+  const DEFAULT_PROGRESS = { corners: [], founders: [], toys: [], riddle: 0, riddle2: 0, lineage: {}, eventsSeen: [], dangers: [], toyTargets: [], feedsTotal: 0 };
   let progress = { ...DEFAULT_PROGRESS };
   function load() {
     try {
@@ -78,12 +90,29 @@ const Missions = (() => {
   function notify(kind, value) {
     if (kind === "founderSeen") addUnique(progress.founders, value, "founders", 8);
     else if (kind === "toyUsed") addUnique(progress.toys, value, "toymaster", 4);
-    else if (kind === "eventSurvived") complete(value); // "current" | "blackout"
+    else if (kind === "toyTarget") addUnique(progress.toyTargets, value, "toyparty", 5);
+    else if (kind === "eventSurvived") {
+      complete(value); // "current" | "blackout"
+      addUnique(progress.dangers, value, "eventTriathlon", 2);
+      if (typeof Ladder !== "undefined") Ladder.notify("dangerSurvived");
+    }
+    else if (kind === "fed") {
+      progress.feedsTotal++;
+      save();
+      if (progress.feedsTotal >= 15) complete("feedmaster");
+      render();
+    }
     else if (kind === "runeFound") complete("rune");
     else if (kind === "riskyCourtship") complete("riskyCourtship");
     else if (kind === "goldrainBirth") complete("goldrainBirth");
     else if (kind === "eventSeen") addUnique(progress.eventsSeen, value, "eventsWitnessed", 3);
-    else if (kind === "creatureCaught") { if (!isDone("collector") && Codex.count() >= 6) complete("collector"); render(); }
+    else if (kind === "creatureCaught") {
+      if (!isDone("collector") && Codex.count() >= 6) complete("collector");
+      if (!isDone("catch12") && Codex.count() >= 12) complete("catch12");
+      if (!isDone("epicCatch") && value && (value.rarity === "epic")) complete("epicCatch");
+      if (!isDone("codexFounders") && Codex.list().filter(e => e.permanent).length >= 8) complete("codexFounders");
+      render();
+    }
     else if (kind === "mine") registerLineage(value, 0);
     else if (kind === "courtship") onCourtship(value);
   }
@@ -94,8 +123,15 @@ const Missions = (() => {
     progress.lineage[id] = depth;
     save();
     if (depth >= 2) complete("dynasty");
+    if (depth >= 3) complete("dynasty4");
+  }
+  function lineageDepth() {
+    const depths = Object.values(progress.lineage);
+    return depths.length ? Math.max(...depths) : 0;
   }
   function onCourtship({ a, b, child }) {
+    // cría con un fundador: una mitad inmortal, la otra tuya
+    if ((a.mine && b.permanent) || (b.mine && a.permanent)) complete("founderChild");
     const da = progress.lineage[a.id], db = progress.lineage[b.id];
     if (da === undefined && db === undefined) return;
     const depth = Math.min(da ?? Infinity, db ?? Infinity) + 1;
@@ -122,6 +158,7 @@ const Missions = (() => {
     if (!mineAlive) { lastNearby = 0; return; }
     lastNearby = myCreature.nearbyCount(world, 140);
     if (!isDone("elder") && myCreature.age > 180) complete("elder");
+    if (!isDone("centenarian") && myCreature.age > 300) complete("centenarian");
     if (!isDone("family") && (myCreature.childCount || 0) >= 5) complete("family");
     if (!isDone("swarm") && lastNearby >= 8) complete("swarm");
   }
@@ -210,6 +247,12 @@ const Missions = (() => {
     if (key === "hoarder") return Math.min(150, Wallet.diamonds);
     if (key === "wardrobe") return wardrobeSlotsFilled();
     if (key === "collector") return Math.min(6, Codex.count());
+    if (key === "feedmaster") return Math.min(15, progress.feedsTotal);
+    if (key === "toyparty") return progress.toyTargets.length;
+    if (key === "catch12") return Math.min(12, Codex.count());
+    if (key === "centenarian") return Math.min(300, Math.floor(mine?.age || 0));
+    if (key === "rich300") return Math.min(300, Wallet.diamonds);
+    if (key === "codexFounders") return Codex.list().filter(e => e.permanent).length;
     return 0;
   }
 
@@ -304,11 +347,16 @@ const Missions = (() => {
     $("#riddle-form").addEventListener("submit", e => { e.preventDefault(); submitRiddle(); });
     Wallet.onChange(state => {
       if (!isDone("hoarder") && state.diamonds >= 150) complete("hoarder");
+      if (!isDone("rich300") && state.diamonds >= 300) complete("rich300");
       if (!isDone("wardrobe") && wardrobeSlotsFilled() >= 4) complete("wardrobe");
       render();
     });
     I18n.onChange(() => render());
   }
 
-  return { init, open, close, notify, tick, tryRuneAt, drawRune, get isOpen() { return isOpen; }, doneCount };
+  return {
+    init, open, close, notify, tick, tryRuneAt, drawRune, doneCount, lineageDepth, render,
+    get isOpen() { return isOpen; },
+    get progress() { return progress; } // solo lectura, para las métricas del Sendero
+  };
 })();

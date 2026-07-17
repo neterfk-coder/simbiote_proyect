@@ -79,6 +79,7 @@ const Shop = (() => {
     const result = await Wallet.purchase(itemId);
     if (result.error === "funds") { onToast?.(I18n.t("shop.notEnough"), "coral"); return; }
     if (result.error) return;
+    if (typeof Ladder !== "undefined") Ladder.notify("purchase");
     if (isConsumable(itemId)) { if (onUse) onUse(itemId); }
     else if (onEquipChange) onEquipChange();
     onToast?.(I18n.t("shop.purchased", { name: I18n.t(CATALOG.flatMap(g => g.items).find(i => i.id === itemId).key + ".name") }));

@@ -146,7 +146,10 @@ const MISSIONS = {
   toymaster: 30, founders: 35, explorer: 30, current: 40, blackout: 45, riddles: 50, rune: 60,
   dynasty: 70, riskyCourtship: 45, elder: 55, family: 50, swarm: 35,
   goldrainBirth: 40, eventsWitnessed: 40, riddles2: 65, hoarder: 40, wardrobe: 45,
-  collector: 35
+  collector: 35,
+  feedmaster: 50, toyparty: 45, catch12: 60, epicCatch: 55, eventTriathlon: 60,
+  centenarian: 75, rich300: 65, founderChild: 80, dynasty4: 90, codexFounders: 85,
+  chest1: 30, chest2: 50, chest3: 75, chest4: 100
 };
 const SHOP_ITEMS = {
   food_spark: 8, food_feast: 25,

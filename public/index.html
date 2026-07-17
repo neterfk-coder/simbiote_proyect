@@ -174,12 +174,26 @@
       <h2 class="lb-title" data-i18n="missions.screenTitle">Misiones del santuario</h2>
       <button id="ms-close" class="icon-btn" data-i18n-aria="missions.closeAria" aria-label="Cerrar misiones">✕</button>
     </div>
-    <p class="ms-sub" data-i18n="missions.sub">Doce pruebas te esperan: cuida, explora, resuelve y sobrevive.</p>
-    <div class="ms-progress-row">
-      <span id="ms-progress-label" class="ms-progress-label">—</span>
-      <div class="ms-progress-track"><div id="ms-progress-fill" class="ms-progress-fill"></div></div>
+    <div class="ms-tabs" role="tablist">
+      <button type="button" class="ms-tab is-active" data-ms-tab="missions" data-i18n="missions.tab">Misiones</button>
+      <button type="button" class="ms-tab" data-ms-tab="ladder" data-i18n="ladder.tab">El Sendero</button>
     </div>
-    <div id="ms-grid" class="ms-grid"></div>
+
+    <div id="missions-view">
+      <p class="ms-sub" data-i18n="missions.sub">Pruebas te esperan: cuida, explora, resuelve y sobrevive.</p>
+      <div class="ms-progress-row">
+        <span id="ms-progress-label" class="ms-progress-label">—</span>
+        <div class="ms-progress-track"><div id="ms-progress-fill" class="ms-progress-fill"></div></div>
+      </div>
+      <div id="ms-grid" class="ms-grid"></div>
+    </div>
+
+    <div id="ladder-view" class="hidden">
+      <p class="ms-sub" data-i18n="ladder.sub">Veinte pasos en escalera: cada uno guarda hasta tres estrellas, y las estrellas abren cofres misteriosos.</p>
+      <p id="ladder-stars-label" class="ladder-stars-total">—</p>
+      <div id="ladder-chests" class="ladder-chest-row"></div>
+      <div id="ladder-path" class="ladder-path"></div>
+    </div>
   </div>
 </section>
 
@@ -503,6 +517,7 @@
 <script src="js/codex.js"></script>
 <script src="js/encounter.js"></script>
 <script src="js/missions.js"></script>
+<script src="js/ladder.js"></script>
 <script src="js/shop.js"></script>
 <script src="js/leaderboard.js"></script>
 <script src="js/certificate.js"></script>
