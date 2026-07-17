@@ -225,16 +225,20 @@ const App = (() => {
   }
 
   function drawAbyss(p) {
-    // gradiente vertical abisal + viñeta, dibujado barato
-    const c1 = p.color(252, 45, 8), c2 = p.color(230, 55, 4);
+    // gradiente vertical abisal (índigo profundo → casi negro) + auroras suaves
+    const c1 = p.color(256, 50, 9), c2 = p.color(234, 58, 3.5);
     for (let i = 0; i <= 8; i++) {
       p.noStroke();
       p.fill(p.lerpColor(c1, c2, i / 8));
       p.rect(0, (p.height / 8) * i, p.width, p.height / 8 + 2);
     }
     const t = p.millis() * 0.0001;
-    p.fill(190, 60, 20, 0.06 + Math.sin(t * 4) * 0.02);
+    // resplandor cálido del fondo (bioluminiscencia lejana)
+    p.fill(182, 55, 22, 0.055 + Math.sin(t * 4) * 0.018);
     p.ellipse(p.width * 0.5, p.height * 1.15, p.width * 1.4, p.height * 0.9);
+    // aurora violeta que respira en lo alto
+    p.fill(282, 46, 16, 0.04 + Math.cos(t * 3) * 0.012);
+    p.ellipse(p.width * 0.22, -p.height * 0.18, p.width * 1.1, p.height * 0.7);
   }
 
   /* ══════════ 2. Navegación entre pantallas ══════════ */
