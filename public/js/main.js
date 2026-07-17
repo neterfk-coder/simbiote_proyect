@@ -20,6 +20,8 @@ const App = (() => {
   let draggingCreature = false;
   let creatureDragFrom = null; // { sx, sy } — para distinguir un toque (golpe) de un arrastre real (cortejo)
   let draggingToy = null;
+  let buildingCorral = false;
+  let corralDraft = [];
   const milestones = new Set();
   const PORTRAIT_KEY = "simbionte_portrait"; // retrato local, se aplica a cada criatura nueva (como los cosméticos)
 
@@ -69,6 +71,7 @@ const App = (() => {
     };
     /* --- Gestos: compartidos entre mouse y toque de un dedo --- */
     function pointerDown(sx, sy) {
+      if (buildingCorral) { panFrom = { sx, sy, camX: camera.x, camY: camera.y }; isPanning = false; return; }
       const w = screenToWorld(sx, sy);
       const f = World.foodAt(w.x, w.y);
       if (f) { draggingFood = f; World.dragFood(f, w.x, w.y); return; }
@@ -125,7 +128,8 @@ const App = (() => {
       if (panFrom) {
         if (!isPanning) {
           const w = screenToWorld(panFrom.sx, panFrom.sy);
-          if (Missions.tryRuneAt(w.x, w.y)) World.burstAt(w.x, w.y, 45, 46);
+          if (buildingCorral) handleCorralTap(w.x, w.y);
+          else if (Missions.tryRuneAt(w.x, w.y)) World.burstAt(w.x, w.y, 45, 46);
           else inspectAt(w.x, w.y);
         }
         panFrom = null; isPanning = false;
@@ -1041,7 +1045,7 @@ const App = (() => {
      lienzo p5: en vez de depender de los callbacks internos de
      p5 (poco fiables cuando el gesto cruza esa frontera), lo
      manejamos con nuestros propios listeners en window. */
-  $$(".toy-btn").forEach(btn => {
+  $$(".toy-btn[data-toy]").forEach(btn => {
     btn.addEventListener("pointerdown", e => {
       e.preventDefault();
       draggingToy = btn.dataset.toy;
@@ -1054,6 +1058,64 @@ const App = (() => {
       };
       window.addEventListener("pointerup", onUp);
     });
+  });
+
+  /* ══════════ 5d bis. Corral: cerca de postes para proteger y contener a tu criatura ══════════ */
+  const CORRAL_MAX_POSTS = 10, CORRAL_MIN_SPACING = 40, CORRAL_CLOSE_RADIUS = 45, CORRAL_START_RADIUS = 450;
+  function updateCorralBanner() {
+    const n = corralDraft.length;
+    $("#corral-banner-text").textContent = n === 0 ? I18n.t("corral.hintStart") : I18n.t("corral.hintNext", { n });
+  }
+  function enterCorralBuild() {
+    buildingCorral = true;
+    corralDraft = [];
+    $("#btn-corral").classList.add("is-armed");
+    $("#corral-banner").classList.remove("hidden");
+    updateCorralBanner();
+  }
+  function exitCorralBuild() {
+    buildingCorral = false;
+    corralDraft = [];
+    $("#btn-corral").classList.remove("is-armed");
+    $("#corral-banner").classList.add("hidden");
+  }
+  function handleCorralTap(wx, wy) {
+    if (!myCreature || myCreature.dead) { toast(I18n.t("corral.needCreature"), "coral"); exitCorralBuild(); return; }
+    if (corralDraft.length === 0) {
+      if (Math.hypot(myCreature.x - wx, myCreature.y - wy) > CORRAL_START_RADIUS) {
+        toast(I18n.t("corral.tooFar"), "coral");
+        return;
+      }
+      corralDraft.push({ x: wx, y: wy });
+      World.setCorral(corralDraft, false);
+      updateCorralBanner();
+      return;
+    }
+    const first = corralDraft[0];
+    if (corralDraft.length >= 3 && Math.hypot(first.x - wx, first.y - wy) < CORRAL_CLOSE_RADIUS) {
+      World.setCorral(corralDraft, true);
+      exitCorralBuild();
+      toast(I18n.t("corral.built"), "gold");
+      World.burstAt(first.x, first.y, 40, 40);
+      AudioRitual.celebrate();
+      return;
+    }
+    const last = corralDraft[corralDraft.length - 1];
+    if (Math.hypot(last.x - wx, last.y - wy) < CORRAL_MIN_SPACING) return; // muy cerca del poste anterior
+    if (corralDraft.length >= CORRAL_MAX_POSTS) { toast(I18n.t("corral.maxPosts"), "coral"); return; }
+    corralDraft.push({ x: wx, y: wy });
+    World.setCorral(corralDraft, false);
+    updateCorralBanner();
+  }
+  $("#btn-corral").addEventListener("click", () => {
+    if (buildingCorral) { exitCorralBuild(); if (!World.corral?.closed) World.clearCorral(); toast(I18n.t("corral.cancelled")); return; }
+    if (World.corral?.closed) { World.clearCorral(); toast(I18n.t("corral.removed")); return; }
+    enterCorralBuild();
+  });
+  $("#btn-corral-cancel").addEventListener("click", () => {
+    exitCorralBuild();
+    if (!World.corral?.closed) World.clearCorral();
+    toast(I18n.t("corral.cancelled"));
   });
 
   /* ══════════ 5e. Foto personalizada (retrato) ══════════ */
@@ -1149,6 +1211,7 @@ const App = (() => {
     $("#panel-riddle").classList.remove("is-open");
     Wheel.close();
     Encounter.close();
+    if (buildingCorral) { exitCorralBuild(); if (!World.corral?.closed) World.clearCorral(); }
     $("#screen-codex").classList.remove("is-active");
     if (Leaderboard.isOpen) Leaderboard.close();
     if (Missions.isOpen) Missions.close();

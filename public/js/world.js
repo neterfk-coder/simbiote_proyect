@@ -18,6 +18,7 @@ const World = (() => {
   let pointer = null;
   let listeners = { birth: [], death: [], courtship: [], event: [] };
   let paused = false;
+  let corral = null; // corral del visitante: [{x,y}, ...] o null
 
   /* El mundo lógico es bastante más grande que cualquier pantalla:
      centrado en (0,0), como el resto de las coordenadas de cámara. */
@@ -271,6 +272,50 @@ const World = (() => {
     }
   }
 
+  /* ---------- Corral: postes de madera que el visitante planta
+     alrededor de su propia criatura para protegerla y contenerla.
+     corral = { points: [{x,y}...], closed: bool } | null            */
+  function setCorral(points, closed) { corral = { points, closed: !!closed }; }
+  function clearCorral() { corral = null; }
+  function pointInCorral(x, y) {
+    if (!corral || !corral.closed || corral.points.length < 3) return false;
+    const pts = corral.points;
+    let inside = false;
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+      const a = pts[i], b = pts[j];
+      const hit = (a.y > y) !== (b.y > y) &&
+        x < (b.x - a.x) * (y - a.y) / (b.y - a.y) + a.x;
+      if (hit) inside = !inside;
+    }
+    return inside;
+  }
+  function drawCorral(p) {
+    if (!corral || corral.points.length < 1) return;
+    const pts = corral.points;
+    p.push();
+    // cerca: bastones de madera unidos por dos travesaños
+    const segCount = corral.closed ? pts.length : pts.length - 1;
+    for (let i = 0; i < segCount; i++) {
+      const a = pts[i], b = pts[(i + 1) % pts.length];
+      const ang = Math.atan2(b.y - a.y, b.x - a.x);
+      const perp = ang + Math.PI / 2;
+      for (const off of [-4, 4]) {
+        p.stroke(32, 45, 42, 0.85);
+        p.strokeWeight(3);
+        p.line(a.x + Math.cos(perp) * off, a.y + Math.sin(perp) * off,
+               b.x + Math.cos(perp) * off, b.y + Math.sin(perp) * off);
+      }
+    }
+    for (const post of pts) {
+      p.noStroke();
+      p.fill(28, 50, 30, 0.9);
+      p.circle(post.x, post.y, 10);
+      p.fill(32, 40, 48, 0.6);
+      p.circle(post.x, post.y - 2, 5);
+    }
+    p.pop();
+  }
+
   /* ---------- Bucle principal ----------
      view = { x0, y0, x1, y1 }: el rectángulo del mundo que la
      cámara está mostrando ahora mismo (lo calcula main.js). */
@@ -296,6 +341,7 @@ const World = (() => {
     }
 
     updateEvents(p, dt, view);
+    drawCorral(p);
 
     if (!paused) {
       for (const c of [...creatures]) {
@@ -335,7 +381,9 @@ const World = (() => {
     setPointer(pt) { pointer = pt; }, get pointer() { return pointer; },
     setPaused(v) { paused = v; }, get paused() { return paused; },
     get activeEvent() { return activeEvent; },
-    get bounds() { return { w: WORLD_W, h: WORLD_H }; }
+    get bounds() { return { w: WORLD_W, h: WORLD_H }; },
+    setCorral, clearCorral, pointInCorral,
+    get corral() { return corral; }
   };
   return api;
 })();

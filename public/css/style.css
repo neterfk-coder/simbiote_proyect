@@ -439,6 +439,23 @@ button { font-family: var(--body); cursor: pointer; color: inherit; background: 
 }
 .toy-btn:hover { transform: translateY(-2px); border-color: rgba(62,224,193,.4); background: rgba(62,224,193,.08); }
 .toy-btn:active { cursor: grabbing; transform: scale(.94); }
+.toy-btn.is-armed {
+  cursor: default; border-color: rgba(236,209,147,.6); background: rgba(236,209,147,.14);
+  animation: corralArmedPulse 1.6s ease-in-out infinite;
+}
+@keyframes corralArmedPulse { 50% { box-shadow: 0 0 16px rgba(236,209,147,.4); } }
+
+/* ═══ Banner de construcción del corral ═══ */
+.corral-banner {
+  position: fixed; top: 84px; left: 50%; transform: translateX(-50%); z-index: 24;
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 10px 10px 18px; border-radius: 999px;
+  background: var(--panel-solid); border: 1px solid rgba(236,209,147,.4);
+  box-shadow: 0 12px 30px rgba(2,1,8,.5), 0 0 24px rgba(236,209,147,.12);
+  font-size: .82rem; font-weight: 600; color: var(--gold);
+  animation: rise .4s var(--ease) both;
+}
+.corral-banner .icon-btn { width: 30px; height: 30px; color: var(--fog-dim); }
 
 .lb-row { display: flex; justify-content: space-between; gap: 12px; font-size: .78rem; color: var(--fog-dim); }
 .lb-row strong { color: #fff; font-weight: 600; text-align: right; }

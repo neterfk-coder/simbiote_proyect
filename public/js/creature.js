@@ -165,8 +165,11 @@ class Creature {
       }
     }
 
+    // corral: dentro de una cerca cerrada y propia, la corriente no alcanza a arrastrarla
+    const sheltered = this.mine && world.pointInCorral?.(this.x, this.y);
+
     // evento del ecosistema: corriente que arrastra a todos hacia el centro del mundo
-    if (world.activeEvent?.type === "current") {
+    if (world.activeEvent?.type === "current" && !sheltered) {
       const cx = 0, cy = 0;
       const d = p.dist(this.x, this.y, cx, cy);
       if (d > 20) { ax += (cx - this.x) / d * 0.9; ay += (cy - this.y) / d * 0.9; }
@@ -175,7 +178,15 @@ class Creature {
     const speed = (called ? 1.6 : 1) * (0.35 + g[G.SPEED] * 1.4);
     this.vx = p.lerp(this.vx, ax * speed, 0.05 + g[G.WOBBLE] * 0.05);
     this.vy = p.lerp(this.vy, ay * speed, 0.05 + g[G.WOBBLE] * 0.05);
-    this.x += this.vx; this.y += this.vy;
+
+    // corral: si ya estás adentro, la cerca actúa como pared suave para no salir
+    if (sheltered) {
+      const nx = this.x + this.vx, ny = this.y + this.vy;
+      if (world.pointInCorral(nx, ny)) { this.x = nx; this.y = ny; }
+      else { this.vx *= -0.35; this.vy *= -0.35; }
+    } else {
+      this.x += this.vx; this.y += this.vy;
+    }
 
     // el mundo es un toroide: nada se pierde (coordenadas centradas en 0,0)
     const wb = world.bounds || { w: p.width, h: p.height };
