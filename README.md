@@ -1,190 +1,222 @@
-# ◉ SIMBIONTE — el ecosistema de arte vivo
+<div align="center">
 
-> *"No es una obra que se mira. Es una obra que está viva, y tú eres parte de su ADN."*
+# ◉ SIMBIONTE
 
-Proyecto para el hackathon **Hack The Arts** (Devpost). Tema: *"Crea arte que no podría existir sin la tecnología"*.
+### The first living art ecosystem, co-created by its visitors
 
-Cada visitante dona su **voz**, un **gesto** y un **trazo**. Esos tres datos se convierten en el **ADN digital** (20 genes) de una criatura única que vive en un mundo compartido en tiempo real: se reproduce mezclando genes con criaturas de otros visitantes, muta, envejece, muere dejando fósiles, canta con Tone.js, y una **Crónica** (IA opcional) escribe la mitología del mundo mientras ocurre.
+*"It is not a work of art you look at. It is a work of art that is alive — and you are part of its DNA."*
+
+**Built for [Hack The Arts](https://hackthearts.devpost.com) · Theme: "Create art that couldn't exist without technology"**
+
+[![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org)
+[![p5.js](https://img.shields.io/badge/p5.js-generative%20engine-ED225D?logo=p5.js&logoColor=white)](https://p5js.org)
+[![Socket.io](https://img.shields.io/badge/Socket.io-realtime%20world-010101?logo=socket.io&logoColor=white)](https://socket.io)
+[![Supabase](https://img.shields.io/badge/Supabase-persistence-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com)
+[![Claude API](https://img.shields.io/badge/Claude%20API-AI%20Chronicler-D97757?logo=anthropic&logoColor=white)](https://www.anthropic.com)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](#license)
+
+[Live Demo](#) · [Video Walkthrough](#) · [Report a Bug](#)
+
+</div>
 
 ---
 
-## ⚡ Ejecutar en 60 segundos
+## Table of Contents
 
-Requisitos: [Node.js 18+](https://nodejs.org).
+- [What This Is](#what-this-is)
+- [The Thesis](#the-thesis)
+- [The Experience](#the-experience)
+- [Architecture](#architecture)
+- [Project Structure](#project-structure)
+- [Features](#features)
+- [Getting Started](#getting-started)
+- [Environment Variables](#environment-variables)
+- [Deployment](#deployment)
+- [Current Status & Known Limitations](#current-status--known-limitations)
+- [Privacy by Design](#privacy-by-design)
+- [Tech Credits & Attributions](#tech-credits--attributions)
+- [Hackathon Context](#hackathon-context)
+
+---
+
+## What This Is
+
+**SIMBIONTE** is a shared digital world, accessible from any browser, inhabited by generative art creatures. None of them were designed by anyone. Each one is born from the body of a real visitor.
+
+When you arrive, the system asks for three things:
+
+- 🎙️ **Your voice** — a sound, a word, a hum
+- 🖐️ **A gesture** — a free movement of your pointer or finger
+- ✍️ **A stroke** — a single line you draw
+
+Those three inputs are fused into a **20-gene digital genome**: your voice defines the creature's sound and rhythm of life, your gesture defines how it moves, and your stroke defines its anatomy and colors.
+
+The creature doesn't vanish when you close the tab. It lives on in a **persistent, shared, real-time ecosystem** alongside the creatures of every other visitor. They attract or avoid one another, **breed by mixing DNA** through a custom genetic algorithm, age, mutate, and eventually die — leaving fossils behind. Meanwhile, a **Chronicler** (optional AI, or a local myth generator) watches everything and writes the world's mythology live, as it happens.
+
+## The Thesis
+
+> A painting can be made without a computer. A sculpture can be carved without code. But a **collective, persistent, evolving organism — fed in real time by the bodies of people across the planet** — is ontologically impossible without technology.
+
+Technology here is not the tool used to make the artwork. **It is the medium, the canvas, and the biological material, all at once.** SIMBIONTE doesn't use code to imitate traditional art — it defines a medium that has no analog outside of it.
+
+## The Experience
+
+### Act 1 — The Birth (~60 seconds)
+
+An intro screen offers two doors: **"Bring a creature to life"** or **"Just observe the world"** for those who want to enter without the ritual.
+
+The birth ritual unfolds in five steps:
+
+1. **Donate your voice** — speak or hum for 3 seconds into the microphone. No mic, or prefer silence? Choose "continue in silence" and the system generates values without ever blocking the flow.
+2. **Donate a gesture** — move your pointer freely for 4 seconds.
+3. **Give it shape** — draw a free stroke, pick a pre-made avatar, or fine-tune manually with sliders.
+4. **DNA fusion animation** — a double helix of converging particles, visualizing voice + gesture + stroke merging into one genome.
+5. **Birth** — the creature emerges with a name and a poetic epithet generated from its own genome (e.g. *"born of a low voice and a sharp stroke"*), editable before you release it into the world.
+
+### Act 2 — The Ecosystem (real-time, multiplayer)
+
+Every creature sings with a timbre derived from its creator's voice — a **generative choir** rendered with Tone.js. Creatures with compatible DNA can be **courted** (drag one toward another to preview genetic compatibility before confirming) and **bred**: the offspring inherits mixed traits from both parents plus a random mutation. Any creature in the world can be fed, called, or inspected.
+
+### Act 3 — The Memory (persistence & narrative)
+
+When a creature dies, it leaves behind a fossil carrying its genealogy — creator, voice of origin, descendants. The **Chronicler** writes the world's history into an ancient-book-style panel. Every visitor can download their creature's **Birth Certificate** as a shareable PNG image for social media.
+
+## Architecture
+
+| Component | Technology | Role |
+|---|---|---|
+| **Visual engine** | p5.js | Renders the world and every creature — anatomy is **100% procedural**, generated from its 20 genes. No sprites, ever. |
+| **Voice capture** | Web Audio API | Analyzes the microphone in-browser and extracts pitch, energy, and spectral brightness → genes. Audio never leaves the device. |
+| **Gesture / stroke capture** | Pointer & Touch (Canvas) | Records movement and drawing trajectories, normalized into genome traits. |
+| **Evolution** | Custom genetic algorithm (JS) | 20-gene genome; crossover (half from each parent) + mutation (random noise). Original code, not a library. |
+| **Shared world** | Node.js + Express + Socket.io | Synchronizes positions, births, and deaths in real time across every connected visitor. The server is the single source of truth. |
+| **Persistence** | Supabase (PostgreSQL) | Stores DNA, genealogy, and fossils. Optional — without it, the world simply lives in server memory. |
+| **Accounts** | Supabase Auth | Automatic anonymous session per visitor, upgradable to a full email/password account without losing progress; falls back to guest mode if it fails. |
+| **AI Chronicler** | Anthropic API (Claude) | Writes the world's live mythology from ecosystem events. Optional — without an API key, a local myth loom takes over. |
+| **Generative sound** | Tone.js | Synthesizes each creature's "voice" from its inherited sound genes. |
+| **Deployment** | Vercel (static frontend) + Render (persistent Node server) | Free hosting with a live link. |
+
+## Project Structure
+
+```
+simbionte/
+├── server.js              Express + Socket.io server, optional Supabase / AI hooks
+├── package.json
+├── vercel.json             Static frontend deployment config for Vercel
+├── .env.example            Copy to .env to enable Supabase / AI Chronicler
+└── public/
+    ├── index.html          Screens: intro, ritual, HUD, panels
+    ├── css/style.css        "Abyssal bioluminescence" visual design
+    └── js/
+        ├── config.js        The only file you need to touch for production (URLs, public keys)
+        ├── i18n.js           ES/EN languages: every string + the language switcher
+        ├── dna.js            20-gene genome: crossover, mutation, name/epithet generation
+        ├── audio.js          Visitor voice capture (Web Audio) + world choir (Tone.js)
+        ├── capture.js        Gesture and stroke capture (pointer/touch on canvas)
+        ├── creature.js       Procedural anatomy & behavior (p5.js) — 100% math, no assets
+        ├── world.js          Ecosystem: breeding, fossils, plankton, particles
+        ├── chronicle.js       The Chronicler (server AI or local myth loom)
+        ├── net.js            Socket.io client + sanctuary mode + Supabase (read)
+        ├── auth.js           Accounts (Supabase Auth) — automatic anonymous session
+        ├── wallet.js          Diamonds & inventory (account-bound or localStorage)
+        ├── courtship.js       Visitor-initiated courtship + genetic compatibility preview
+        ├── encounter.js       Aim-based mini-game to "catch" other visitors' creatures
+        ├── codex.js           Codex: a permanent record of caught creatures
+        ├── missions.js        22 sanctuary missions (progression, riddles, exploration…)
+        ├── ladder.js          The Path: a 20-step ladder with reward chests
+        ├── wheel.js           Daily prize wheel (one free spin per day)
+        ├── streak.js          Daily visit streak, with milestone rewards
+        ├── shop.js            The Shop (food, gifts, artifacts, cosmetics)
+        ├── leaderboard.js     Live leaderboard by longevity / offspring / sociability
+        ├── certificate.js     Downloadable birth certificate PNG (1080×1350)
+        └── main.js            Orchestrator: p5 world sketch, ritual flow, HUD
+```
+
+## Features
+
+- ✅ **Complete birth ritual** — real voice capture (Web Audio), gesture, free-form stroke, pre-made avatars, and manual slider customization.
+- ✅ **20-gene genome** with genetic crossover, mutation, and procedurally generated names and poetic epithets.
+- ✅ **Real-time shared world** via Socket.io — every visitor sees births, movement, and deaths instantly.
+- ✅ **Sanctuary mode** — if the server is unreachable, the world populates itself with simulated ancestor creatures. The demo is never seen empty.
+- ✅ **Courtship & breeding** — drag one creature toward another to preview genetic compatibility before confirming a cross.
+- ✅ **Full life cycle** — aging, death, and fossils that preserve genealogy.
+- ✅ **AI Chronicler** — real-time mythology (Claude, optional) or a local myth generator as fallback.
+- ✅ **Generative choir** — every creature sounds different based on its inherited voice genes (Tone.js).
+- ✅ **User accounts** — automatic anonymous sessions, upgradable to email/password without losing progress (Supabase Auth).
+- ✅ **In-world economy** — diamonds, a shop (food, gifts, artifacts, equippable cosmetics); prices and rewards are decided server-side only.
+- ✅ **22 sanctuary missions** with diamond rewards.
+- ✅ **The Path** — a 20-step progression ladder with reward chests.
+- ✅ **Daily wheel & daily streak** with milestone rewards.
+- ✅ **Codex** — a permanent collection of creatures caught through an aim-based mini-game.
+- ✅ **Live leaderboard** by longevity, offspring count, or sociability.
+- ✅ **Downloadable birth certificate** (1080×1350 PNG) for social sharing.
+- ✅ **Bilingual ES/EN** with automatic browser language detection.
+- ✅ **Privacy by design** — audio and video never leave the browser; only normalized numbers are stored.
+
+## Getting Started
+
+Requirements: [Node.js 18+](https://nodejs.org)
 
 ```bash
 npm install
 npm start
 ```
 
-Abre **http://localhost:3000**. Listo: el mundo compartido funciona en tu red local (abre dos pestañas y verás la misma población).
+Open **http://localhost:3000**.
 
-> **¿Sin servidor?** También puedes abrir `public/index.html` directamente o desplegar solo la carpeta `public/` como sitio estático: el proyecto detecta que no hay servidor y activa el **modo santuario** (criaturas ancestrales locales). La demo nunca falla.
+Without any configuration, the shared world already works on your local network — open two tabs and you'll see the same population in both. You can also open `public/index.html` directly, or deploy only the `public/` folder as a static site: with no server present, **sanctuary mode** activates automatically.
 
----
+## Environment Variables
 
-## 📁 Estructura del proyecto
+**Server (`.env`, copy from `.env.example`):**
 
-```
-simbionte/
-├── server.js              Servidor: Express + Socket.io + Supabase/IA opcionales
-├── package.json
-├── vercel.json            Despliegue del frontend estático en Vercel
-├── .env.example           Copia como .env para activar Supabase / Cronista IA
-└── public/
-    ├── index.html         Pantallas: intro, ritual, HUD, paneles
-    ├── css/style.css      Diseño "bioluminiscencia abisal"
-    └── js/
-        ├── config.js      ← ÚNICO archivo que necesitas tocar para producción
-        ├── i18n.js        Idiomas (español/English): textos y selector ES/EN
-        ├── dna.js         Genoma de 20 genes, cruce, mutación, nombres
-        ├── audio.js       Voz del visitante (Web Audio) + coro (Tone.js)
-        ├── capture.js     Gesto y trazo del ritual
-        ├── creature.js    Anatomía y comportamiento procedural (p5.js)
-        ├── world.js       Ecosistema: reproducción, fósiles, partículas
-        ├── chronicle.js   El Cronista (mitos locales o IA del servidor)
-        ├── net.js         Socket.io + modo santuario + Supabase lectura
-        ├── auth.js        Cuentas (Supabase Auth) — opcional, cae a invitado
-        ├── wallet.js      Diamantes e inventario (cuenta o localStorage)
-        ├── courtship.js   Cortejo propuesto por el visitante
-        ├── shop.js        La Tienda (comida, regalos, artefactos, ropa)
-        ├── leaderboard.js Pantalla de ranking en vivo con gráfica
-        ├── certificate.js Certificado de nacimiento PNG descargable
-        └── main.js        Orquestador de todo el flujo
-```
-
----
-
-## 🗄️ Conectar Supabase (persistencia — opcional)
-
-Con Supabase, el mundo **sobrevive a los reinicios**: las criaturas y genealogías quedan guardadas y los visitantes reencuentran a sus descendientes días después.
-
-1. Crea un proyecto gratis en [supabase.com](https://supabase.com).
-2. En **SQL Editor**, ejecuta este esquema:
-
-```sql
-create table creatures (
-  id          text primary key,
-  name        text not null,
-  genome      jsonb not null,
-  parents     jsonb,
-  creator     text default 'anónimo',
-  created_at  timestamptz default now()
-);
-
--- Lectura pública (el mundo es de todos), escritura solo del servidor
-alter table creatures enable row level security;
-create policy "lectura publica" on creatures for select using (true);
-```
-
-3. En **Project Settings → API**, copia las claves:
-   - **Servidor** — crea `.env` (copia de `.env.example`) y completa `SUPABASE_URL` y `SUPABASE_SERVICE_KEY` (la clave *service_role*; nunca la publiques en el frontend).
-   - **Frontend (opcional)** — en `public/js/config.js` completa `SUPABASE_URL` y `SUPABASE_ANON_KEY` (la clave *anon public*) si quieres leer el archivo fósil directamente desde el navegador.
-
-4. Reinicia `npm start`. Verás: `Supabase conectado: persistencia activa.`
-
-## 💎 Cuentas, diamantes y tienda (opcional)
-
-Sin nada configurado, la Tienda y las misiones **funcionan igual**: cada navegador guarda sus propios diamantes e inventario en `localStorage` ("modo invitado"). Para que los diamantes persistan entre dispositivos, activa cuentas reales con Supabase Auth:
-
-1. En tu proyecto Supabase, activa **Authentication → Email** (usuario/contraseña; no requiere confirmación por correo para probar en local).
-2. En **SQL Editor**, además de la tabla `creatures` de arriba, ejecuta:
-
-```sql
-alter table creatures add column if not exists user_id uuid references auth.users(id);
-
-create table wallets (
-  user_id     uuid primary key references auth.users(id) on delete cascade,
-  diamonds    integer not null default 0,
-  updated_at  timestamptz default now()
-);
-create table inventory (
-  id           bigint generated always as identity primary key,
-  user_id      uuid references auth.users(id) on delete cascade,
-  item_id      text not null,
-  equipped     boolean default false,
-  acquired_at  timestamptz default now()
-);
-create table missions_done (
-  user_id      uuid references auth.users(id) on delete cascade,
-  mission_key  text not null,
-  done_at      timestamptz default now(),
-  primary key (user_id, mission_key)
-);
-
-alter table wallets enable row level security;
-alter table inventory enable row level security;
-alter table missions_done enable row level security;
-create policy "propio wallet" on wallets for select using (auth.uid() = user_id);
-create policy "propio inventario" on inventory for select using (auth.uid() = user_id);
-create policy "propias misiones" on missions_done for select using (auth.uid() = user_id);
--- Todas las escrituras de diamantes/inventario/misiones pasan por el servidor
--- (server.js usa la service_role key), así que no hacen falta policies de INSERT/UPDATE aquí.
-```
-
-3. Con `SUPABASE_URL`/`SUPABASE_SERVICE_KEY` ya en tu `.env` (servidor) y `SUPABASE_URL`/`SUPABASE_ANON_KEY` en `public/js/config.js` (frontend), reinicia `npm start`. El botón de cuenta (💎, arriba a la derecha) pasa a mostrar el formulario de inicio de sesión / registro en vez del aviso de modo invitado.
-
-**Por qué el precio/recompensa vive en el servidor**: `server.js` define `MISSIONS` y `SHOP_ITEMS` como la única fuente de verdad — el navegador solo manda "quiero esta misión" o "quiero este artículo"; el servidor decide cuánto vale. Así nadie puede regalarse diamantes editando el JavaScript del navegador.
-
-## 🤖 Activar el Cronista IA (opcional)
-
-En `.env` añade tu `ANTHROPIC_API_KEY`. La mitología pasará a escribirla Claude a través de `POST /api/chronicle` (el servidor limita cada mito a una frase). Sin clave, el telar local de mitos funciona igual de bien para la demo.
-
----
-
-## 🚀 Despliegue (Vercel + Render)
-
-El proyecto se publica en dos piezas, ambas gratis:
-
-**1. Servidor del mundo → Render** (Socket.io necesita un proceso persistente; los serverless de Vercel no lo mantienen):
-   - [render.com](https://render.com) → *New Web Service* → conecta tu repo de GitHub.
-   - Build: `npm install` · Start: `node server.js`.
-   - Añade tus variables de entorno (las mismas del `.env`).
-   - Copia la URL final, p. ej. `https://simbionte-server.onrender.com`.
-
-**2. Frontend → Vercel**:
-   - En `public/js/config.js`, pon esa URL en `SERVER_URL`.
-   - [vercel.com](https://vercel.com) → importa el repo (detecta `vercel.json` y sirve `public/` como sitio estático) → Deploy.
-
-> Alternativa simple: despliega TODO solo en Render (sirve frontend y sockets juntos) y usa Vercel únicamente si quieres el dominio bonito para la página.
-
----
-
-## 🌐 Idioma
-
-El selector **ES / EN** está siempre visible (esquina superior derecha antes de entrar al mundo, dentro del HUD una vez dentro). Cambia al instante todo el texto de la interfaz, la mitología de la Crónica (incluida la generada por el Cronista IA), el certificado descargable y los nombres de género por defecto. La preferencia se guarda en `localStorage` y se detecta automáticamente el idioma del navegador en la primera visita.
-
-## 🎛️ Controles
-
-| Acción | Cómo |
+| Variable | Purpose |
 |---|---|
-| Crear una criatura | «Dar vida a una criatura» → voz (3 s) → gesto (4 s) → trazo (suelta para terminar) → puedes editar su nombre antes de liberarla |
-| Conocer una criatura | Tócala/clic: se abre su ficha con genes y genealogía |
-| Alimentarla | Arrastra una partícula de luz flotante hasta ella (crece un poco y vive más) |
-| Llamarla | Mantén presionado cerca de ella: nada hacia el cursor más rápido que hacia cualquier otra |
-| Proponerle un cortejo | Arrástrala hasta otra criatura: verás la compatibilidad genética antes de confirmar el cruce |
-| Escuchar el coro | Botón de sonido del HUD (cada criatura canta su gen de tono) |
-| Leer la mitología | Botón de libro → panel «La Crónica» |
-| Ver el ranking en vivo | Botón de trofeo → gráfica y tabla de todas las criaturas por longevidad, descendencia o sociabilidad |
-| Comprar en la Tienda | Botón de bolsa → comida, regalos, artefactos y vestimentas con tus 💎 |
-| Compartir | «Certificado ↓» descarga un PNG 1080×1350 listo para redes |
+| `SUPABASE_URL` / `SUPABASE_SERVICE_KEY` | World persistence (creatures, genealogies, wallets, missions, streaks). Uses the `service_role` key — never expose it in the frontend. |
+| `ANTHROPIC_API_KEY` | Enables the real AI Chronicler (Claude) via `POST /api/chronicle`. Without it, the local myth generator is used instead. |
+| `PORT` | Server port (defaults to `3000`). |
 
-## 🔒 Privacidad
+**Frontend (`public/js/config.js`):**
 
-La voz y la cámara **nunca salen del navegador**. Del ritual solo se conservan números normalizados (tono, energía, brillo, trayectorias). No se guarda audio ni video en ningún lugar.
+| Key | Purpose |
+|---|---|
+| `SERVER_URL` | Socket.io server URL. Empty (`""`) in local dev (same origin); your Render URL in production. |
+| `SUPABASE_URL` / `SUPABASE_ANON_KEY` | Browser-side Supabase client (public `anon` key only) — fossil archive reads and user accounts. |
+| `DEFAULT_CREATOR` | Default signature name for creatures if none is provided. |
+| `MAX_POPULATION` | Maximum visible world population (defaults to 30). |
 
-## 🛠️ Tecnologías y atribuciones (requisito del envío)
+## Deployment
 
-[p5.js](https://p5js.org) (render), [Tone.js](https://tonejs.github.io) (sonido generativo), [Socket.io](https://socket.io) (tiempo real), [Express](https://expressjs.com), [Supabase](https://supabase.com) (persistencia opcional), API de [Anthropic](https://www.anthropic.com) (Cronista opcional), Google Fonts (Unbounded, Sora, Cormorant Garamond). Algoritmo genético, anatomía procedural y telar de mitos: **código propio**.
+| Piece | Platform | Notes |
+|---|---|---|
+| **Frontend** | Vercel | Serves `public/` as a static site (auto-detects `vercel.json`). |
+| **Server** (world + Socket.io) | Render (free Web Service) | Requires a persistent process — Vercel's serverless functions cannot keep sockets alive. |
 
-## 📋 Checklist del envío a Devpost
+## Current Status & Known Limitations
 
-- [ ] Enlace en vivo (Vercel/Render) funcionando
-- [ ] Repositorio público con este README
-- [ ] Video demo 2–3 min (abre con un nacimiento real, no con slides)
-- [ ] Descripción del proyecto: concepto + este stack + atribuciones
-- [ ] Publicar el enlace en el Discord del hackathon: cada criatura creada por otro participante hace crecer la obra (y los votos de Favorito del Público)
+- ✔ The live site loads with a clean console. The full ritual — real microphone voice, gesture, stroke, DNA fusion, birth, sound, and Chronicle — was tested end-to-end and works correctly, including coherent epithet and mythology generation from real donated genomes.
+- ⚠ Render's free tier puts the server to **sleep after ~15 minutes** of inactivity and can take longer than expected to wake up. If the connection isn't established in time, the frontend automatically falls back to **sanctuary mode** (a simulated local world, not connected to the real shared ecosystem) — this was observed happening on a real production test. Worth noting as a known limitation, and worth mitigating with a periodic keep-alive ping or a paid tier before a live demo.
+
+## Privacy by Design
+
+Voice and camera data **never leave the browser**. Only normalized numbers (pitch, energy, brightness, trajectories) are ever retained from the ritual. No audio or video is stored anywhere, at any point.
+
+## Tech Credits & Attributions
+
+[p5.js](https://p5js.org) (rendering) · [Tone.js](https://tonejs.github.io) (generative sound) · [Socket.io](https://socket.io) (real-time sync) · [Express](https://expressjs.com) · [Supabase](https://supabase.com) (persistence & accounts, optional) · [Anthropic API — Claude](https://www.anthropic.com) (AI Chronicler, optional) · Google Fonts (Unbounded, Sora, Cormorant Garamond).
+
+Genetic algorithm, procedural anatomy, and the myth loom: **original code**.
+
+## Hackathon Context
+
+Submitted to **[Hack The Arts](https://hackthearts.devpost.com)** (Devpost) — theme: *"Create art that couldn't exist without technology."*
+
+SIMBIONTE naturally competes across several award categories, driven by its shareable birth certificate (fueling the Audience Favorite vote) and by the originality of its core premise: **the audience doesn't just operate the art — the audience *is* the art.**
 
 ---
 
-*Hecho con código, ruido y ganas de que el arte respire.* ◉
+<div align="center">
+
+*Made with code, noise, and the conviction that art should breathe.* ◉
+
+</div>
